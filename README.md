@@ -10,9 +10,12 @@ Implementa un **analizador léxico (lexer)** para un lenguaje de dominio especí
 
 ```
 Compilador-Coordenadas/
-├── Token.py                      # Clase Token: representa cada unidad léxica
-├── AnalisiLexicoCoordenadas.py   # Analizador léxico principal (tokenizador)
-└── Pseudocodigo.py               # Versión en pseudocódigo del tokenizador
+├── src/
+│   ├── Token.py                  # Clase Token: representa cada unidad léxica
+│   └── AnalisiLexicoCoordenadas.py # Analizador léxico principal
+├── docs/
+│   └── Pseudocodigo.txt          # Versión en pseudocódigo del tokenizador
+└── imagenes/                     # Imágenes y recursos visuales del proyecto
 ```
 
 ---
@@ -25,7 +28,7 @@ Compilador-Coordenadas/
 ### Ejecución del analizador léxico
 
 ```bash
-python AnalisiLexicoCoordenadas.py
+python src/AnalisiLexicoCoordenadas.py
 ```
 
 El programa solicita una expresión por consola. Ejemplo de entrada:
