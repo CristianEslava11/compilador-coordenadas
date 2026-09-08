@@ -1,0 +1,20 @@
+[
+    {
+        "Regla_1": {
+            "revisar_palabra_clave": [
+                "coordenada",
+                "ubicacion",
+                "distancia",
+                "hemisferio",
+                "validar"
+            ],
+            "revisar_validacion_coordenada": [
+                "LPARENT",
+                "NUMERO",
+                "COMA",
+                "NUMERO",
+                "RPARENT"
+            ]
+        }
+    }
+]

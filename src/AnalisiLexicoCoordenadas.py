@@ -54,11 +54,3 @@ def tokenizar(texto):
         raise ValueError(f"Carácter no reconocido: {char!r}")
 
     return tokens
-
-
-if __name__ == "__main__":
-    expresion = input("ingrese la información: ")
-
-    tokens = tokenizar(expresion.lower())
-    for token in tokens:
-        print(token)
