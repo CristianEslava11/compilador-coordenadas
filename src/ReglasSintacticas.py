@@ -40,7 +40,7 @@ def revisar_palabra_clave(parser):
 
 def revisar_validacion_coordenada(parser):
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "LPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba '(' al inicio de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba '[]' al inicio de la coordenada")
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo not in ["NUMERO", "NEGATIVO"]:
@@ -58,7 +58,7 @@ def revisar_validacion_coordenada(parser):
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "RPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba ')' al final de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba ']' al final de la coordenada")
     parser.pos += 1
 
     return (latitud, longitud)
@@ -71,3 +71,28 @@ def regla_distancia(parser):
     parser.pos += 1
     coordenada_2 = revisar_validacion_coordenada(parser)
     return (coordenada_1, coordenada_2)
+
+def regla_ubicacion(parser):
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "LPARENT":
+        raise SyntaxError("Error Sintáctico: Se esperaba '[' al inicio de la coordenada")
+    parser.pos += 1
+
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "COMILLA":
+        raise SyntaxError("Error Sintáctico: Se esperaba ''' al inicio de la coordenada")
+    parser.pos += 1
+
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo not in ["STRING"]:
+        raise SyntaxError("Error Sintáctico: Se esperaba un STRING para la ubicación")
+    nombre_ubicacion = parser.tokens[parser.pos].valor
+    parser.pos += 1
+
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "COMILLA":
+        raise SyntaxError("Error Sintáctico: Se esperaba ''' al final de la coordenada")
+    parser.pos += 1
+
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "RPARENT":
+        raise SyntaxError("Error Sintáctico: Se esperaba ']' al final de la coordenada")
+    parser.pos += 1
+
+    return nombre_ubicacion
+
