@@ -6,8 +6,8 @@ def tokenizar(texto):
     tokens = []
     i = 0
     simbolos = {
-        "(" : "LPARENT",
-        ")" : "RPARENT",
+        "[" : "LPARENT",
+        "]" : "RPARENT",
         "," : "COMA",
         "'" : "COMILLA"
     }

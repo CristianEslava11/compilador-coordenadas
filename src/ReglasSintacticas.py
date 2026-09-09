@@ -8,10 +8,13 @@ def cargar_palabras_clave_desde_json():
     try:
         with open(ruta_json, "r", encoding="utf-8") as f:
             datos = json.load(f)
-            regla_1 = datos[0].get("Regla_1", {})
-            palabras = regla_1.get("revisar_palabra_clave", [])
-            if palabras:
-                return palabras
+            if isinstance(datos, dict):
+                return list(datos.keys())
+            elif isinstance(datos, list):
+                regla_1 = datos[0].get("Regla_1", {})
+                palabras = regla_1.get("revisar_palabra_clave", [])
+                if palabras:
+                    return palabras
     except Exception:
         pass
     return ["coordenada", "ubicacion", "distancia", "hemisferio", "validar"]
@@ -61,9 +64,10 @@ def revisar_validacion_coordenada(parser):
     return (latitud, longitud)
 
 
-
-            
-            
-
-        
-    
+def regla_distancia(parser):
+    coordenada_1 = revisar_validacion_coordenada(parser)
+    if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "COMA":
+        raise SyntaxError("Error Sintáctico: Se esperaba ',' entre las coordenadas")
+    parser.pos += 1
+    coordenada_2 = revisar_validacion_coordenada(parser)
+    return (coordenada_1, coordenada_2)

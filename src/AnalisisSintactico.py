@@ -33,31 +33,17 @@ class parser:
 
     def buscar_regla(self):
         """
-        Examina el token actual y busca en la lista de reglas cargadas desde el JSON
-        cuál regla coincide con el valor o tipo de dicho token.
-        Retorna el nombre del método/función a ejecutar en 'ReglasSintacticas.py'.
+        Examina el token actual y consulta en el JSON de reglas la configuración
+        asociada a dicha palabra clave. Retorna el diccionario de funciones a ejecutar.
         """
         token = self.actual()
-        if token is None:
-            raise SyntaxError("Error: No se encontró la palabra clave al inicio")
         
-        if token.valor is not None:
-            valor_token = str(token.valor).lower()
-        else: 
-            valor_token = None
+        if token.valor != None:
+            clave = str(token.valor).lower()
+        else:
+            raise SyntaxError("Error: No se encontró la palabra clave al inicio")
 
-        tipo_token = token.tipo.upper()
-
-        for reglas in self.reglas:
-            regla_dict = reglas.get("Regla_1", {})
-            for nombre_funcion, disparadores in regla_dict.items():
-                if nombre_funcion == "revisar_palabra_clave":
-                    # Si el valor o tipo coincide con los disparadores
-                    disparadores_lower = [str(d).lower() for d in disparadores]
-                    if valor_token in disparadores_lower or tipo_token in disparadores:
-                        return nombre_funcion  # Retorna "revisar_palabra_clave"
-
-        return None
+        return self.reglas.get(clave)
 
     def ejecucion_metodo(self, nombre_metodo):
         """Busca el método en ReglasSintacticas por su nombre en string y lo ejecuta pasándole self."""
@@ -72,17 +58,20 @@ class parser:
         if token is None:
             raise SyntaxError("La secuencia de tokens está vacía.")
 
-        nombre_metodo = self.buscar_regla()
+        config_regla = self.buscar_regla()
         
-        if nombre_metodo is None:
+        if config_regla is None:
             raise SyntaxError(f"Error: No hay reglas definidas para el token actual: {token.tipo}, {token.valor}")
-        # 1. Ejecutar la primera regla (revisar palabra clave)
-        comando = self.ejecucion_metodo(nombre_metodo)
-        # 2. Ejecutar la siguiente regla para validar los argumentos de la coordenada
-        coordenadas = self.ejecucion_metodo("revisar_validacion_coordenada")
+
+        # 1. Ejecutar la regla de inicio apuntada desde el JSON (ej. 'revisar_palabra_clave')
+        comando = self.ejecucion_metodo(config_regla["funcion_clave"])
+        
+        # 2. Ejecutar la regla de argumentos apuntada desde el JSON (ej. 'revisar_validacion_coordenada', 'regla_distancia')
+        argumentos = self.ejecucion_metodo(config_regla["funcion_argumentos"])
+
         return {
             "comando": comando,
-            "coordenadas": coordenadas
+            "argumentos": argumentos
         }
 
     
