@@ -186,14 +186,40 @@ Los diagramas representan las reglas léxicas y sintácticas consideradas para c
 
 ## 🔄 Arquitectura y Flujo del Análisis Sintáctico
 
-El compilador utiliza un enfoque basado en configuración JSON (`reglas.json`) desacoplado de las funciones de validación (`ReglasSintacticas.py`), coordinado por el motor del parser (`AnalisisSintactico.py`):
+El compilador utiliza un enfoque modular donde la entrada de usuario se tokeniza en la fase léxica y se procesa mediante un motor de análisis sintáctico desacoplado, configurado a través de `persistencia/reglas.json` y ejecutado por `ReglasSintacticas.py`:
 
 ![Diagrama del Analizador Sintáctico](imagenes/diagrama%20analizador%20sintactico.png)
 
 ### Funcionamiento paso a paso:
-1. **`reglas.json`**: Define de forma estructurada qué funciones de `ReglasSintacticas.py` deben ejecutarse y cuáles son sus tokens/palabras disparadoras.
-2. **`AnalisisSintactico.py` (`parser`)**: Carga el JSON, inspecciona el token actual con `actual()`, busca la regla coincidente con `buscar_regla()` e invoca dinámicamente la función con `getattr()`.
-3. **`ReglasSintacticas.py`**: Contiene la lógica gramatical específica para validar la secuencia de tokens esperada y extraer los valores semánticos.
+
+1. **Entrada del Usuario (`main.py`)**:
+   - El programa solicita al usuario la instrucción o expresión geográfica (ej. `coordenada[4.7110, -74.0721]`).
+   - `main.py` actúa como orquestador principal, capturando la entrada y enviándola a las fases de análisis.
+
+2. **Análisis Léxico (`AnalisiLexicoCoordenadas.py`)**:
+   - La función `tokenizar(texto)` escanea la cadena carácter a carácter.
+   - Clasifica y genera una lista ordenada de objetos `Token` reconociendo palabras clave (`IDENTIFICADOR`), texto libre (`STRING`), delimitadores (`LPARENT`, `RPARENT`), números con signo (`NUMERO`, `NEGATIVO`), comas (`COMA`) y comillas (`COMILLA`).
+   - Descarta espacios en blanco y detecta errores léxicos ante caracteres no reconocidos.
+
+3. **Carga y Búsqueda de Reglas (`AnalisisSintactico.py` + `reglas.json`)**:
+   - Se crea una instancia de la clase `parser(tokens)`.
+   - El método `_cargar_reglas()` lee el archivo de configuración `persistencia/reglas.json`.
+   - Con `buscar_regla()`, el parser inspecciona el primer token (`IDENTIFICADOR`) y obtiene la configuración de funciones requeridas para esa instrucción (`funcion_clave` y `funcion_argumentos`).
+
+4. **Validación Sintáctica Dinámica (`ReglasSintacticas.py`)**:
+   - El parser invoca dinámicamente mediante `ejecucion_metodo(nombre_metodo)` las funciones correspondientes usando `getattr()`:
+     - **Validación del comando**: Ejecuta `revisar_palabra_clave(parser)` para asegurar y consumir el comando inicial.
+     - **Validación de argumentos**: Ejecuta la función asociada (`revisar_validacion_coordenada`, `regla_distancia`, `regla_ubicacion`), la cual consume secuencialmente los tokens esperados (`LPARENT`, `NUMERO`/`NEGATIVO`/`STRING`, `COMA`, `RPARENT`) avanzando el puntero `parser.pos` y verificando la gramática.
+
+5. **Construcción y Retorno del Resultado**:
+   - El método `analizador()` empaqueta la información procesada en un diccionario estructurado:
+     ```python
+     {
+         "comando": comando,
+         "argumentos": argumentos  # ej: (4.7110, -74.0721) o ((lat1, lon1), (lat2, lon2))
+     }
+     ```
+   - El resultado es devuelto a `main.py` para su visualización o posterior procesamiento.
 
 ---
 
@@ -210,9 +236,9 @@ python src/main.py
 
 Ejemplo de ejecución interactiva:
 ```text
-Ingrese la información: coordenada(4.7110, -74.0721)
-Tokens generados: [IDENTIFICADOR, 'coordenada', LPARENT, '(', NUMERO, 4.711, COMA, ',', NEGATIVO, -74.0721, RPARENT, ')']
-Resultado del análisis sintáctico: {'comando': 'coordenada', 'coordenadas': (4.711, -74.0721)}
+Ingrese la información: coordenada[4.7110, -74.0721]
+Tokens generados: [Token(IDENTIFICADOR, 'coordenada'), Token(LPARENT, '['), Token(NUMERO, 4.711), Token(COMA, ','), Token(NEGATIVO, -74.0721), Token(RPARENT, ']')]
+Resultado del análisis sintáctico: {'comando': 'coordenada', 'argumentos': (4.711, -74.0721)}
 ```
 
 ### Ejecución exclusiva del analizador léxico:
@@ -223,16 +249,16 @@ python src/AnalisiLexicoCoordenadas.py
 
 ## Tokens reconocidos
 
-| Token          | Descripción                          | Ejemplo         |
-|----------------|--------------------------------------|-----------------|
-| `IDENTIFICADOR` | Palabra clave del lenguaje       | `coordenada`    |
-| `STRING`        | Texto alfabético                  | `Colombia`      |
-| `NUMERO`        | Número positivo entero o decimal | `45.12`         |
-| `NEGATIVO`      | Número negativo                   | `-19.43`        |
-| `LPARENT`       | Paréntesis izquierdo              | `(`             |
-| `RPARENT`       | Paréntesis derecho                | `)`             |
-| `COMA`          | Separador de argumentos           | `,`             |
-| `COMILLA`       | Comilla simple                    | `'`             |
+| Token          | Descripción                              | Ejemplo         |
+|----------------|------------------------------------------|-----------------|
+| `IDENTIFICADOR` | Palabra clave reservada del lenguaje     | `coordenada`    |
+| `STRING`        | Texto alfabético                          | `Colombia`      |
+| `NUMERO`        | Número positivo entero o decimal         | `45.12`         |
+| `NEGATIVO`      | Número negativo entero o decimal         | `-19.43`        |
+| `LPARENT`       | Delimitador de apertura corchete `[`     | `[`             |
+| `RPARENT`       | Delimitador de cierre corchete `]`       | `]`             |
+| `COMA`          | Separador de argumentos `,`              | `,`             |
+| `COMILLA`       | Delimitador de comilla simple `'`        | `'`             |
 
 ### Palabras clave
 
