@@ -1,0 +1,22 @@
+{
+    "coordenada": {
+        "funcion_clave": "revisar_palabra_clave",
+        "funcion_argumentos": "revisar_validacion_coordenada"
+    },
+    "validar": {
+        "funcion_clave": "revisar_palabra_clave",
+        "funcion_argumentos": "revisar_validacion_coordenada"
+    },
+    "distancia": {
+        "funcion_clave": "revisar_palabra_clave",
+        "funcion_argumentos": "regla_distancia"
+    },
+    "hemisferio": {
+        "funcion_clave": "revisar_palabra_clave",
+        "funcion_argumentos": "revisar_validacion_coordenada"
+    },
+    "ubicacion": {
+        "funcion_clave": "revisar_palabra_clave",
+        "funcion_argumentos": "regla_ubicacion"
+    }
+}

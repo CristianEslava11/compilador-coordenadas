@@ -6,8 +6,8 @@ def tokenizar(texto):
     tokens = []
     i = 0
     simbolos = {
-        "(" : "LPARENT",
-        ")" : "RPARENT",
+        "[" : "LPARENT",
+        "]" : "RPARENT",
         "," : "COMA",
         "'" : "COMILLA"
     }
@@ -54,11 +54,3 @@ def tokenizar(texto):
         raise ValueError(f"Carácter no reconocido: {char!r}")
 
     return tokens
-
-
-if __name__ == "__main__":
-    expresion = input("ingrese la información: ")
-
-    tokens = tokenizar(expresion.lower())
-    for token in tokens:
-        print(token)
