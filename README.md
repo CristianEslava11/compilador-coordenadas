@@ -103,40 +103,6 @@ ubicacion('Colombia')
 
 ---
 
-## 📐 Especificación Sintáctica (Gramática EBNF / BNF)
-
-La estructura sintáctica de las instrucciones del lenguaje se define formalmente mediante la siguiente Gramática Libre de Contexto en notación **EBNF**:
-
-```ebnf
-(* Símbolo inicial: una instrucción del lenguaje *)
-<instruccion>     ::= <cmd_coordenada>
-                    | <cmd_validacion>
-                    | <cmd_distancia>
-                    | <cmd_hemisferio>
-                    | <cmd_ubicacion>
-
-(* Componente modular para coordenadas geográficas *)
-<coordenada>      ::= LPARENT <valor_numero> COMA <valor_numero> RPARENT
-
-(* Producciones para cada comando *)
-<cmd_coordenada>  ::= "coordenada" <coordenada>
-<cmd_validacion>  ::= ("validacion" | "validar") <coordenada>
-<cmd_distancia>   ::= "distancia" <coordenada> COMA <coordenada>
-<cmd_hemisferio>  ::= "hemisferio" <coordenada> [ COMA <coordenada> ]
-<cmd_ubicacion>   ::= "ubicacion" LPARENT [ COMILLA ] STRING [ COMILLA ] RPARENT
-
-(* Valores numéricos permitidos *)
-<valor_numero>    ::= NUMERO | NEGATIVO
-```
-
-### Descripción de Componentes Sintácticos
-
-* **`<instruccion>`**: Regla inicial que deriva en cualquiera de los comandos válidos del lenguaje.
-* **`<coordenada>`**: Par ordenado de la forma `(latitud, longitud)`, delimitado por paréntesis y separado por coma.
-* **`<cmd_coordenada>` / `<cmd_validacion>`**: Requieren exactamente una coordenada como argumento.
-* **`<cmd_distancia>`**: Requiere dos pares de coordenadas separados por una coma.
-* **`<cmd_hemisferio>`**: Acepta una o dos coordenadas geográficas.
-* **`<cmd_ubicacion>`**: Recibe un nombre de lugar en formato de texto (`STRING`).
 
 ###  Reglas Sintácticas del Lenguaje
 
