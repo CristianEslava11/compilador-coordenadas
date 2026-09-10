@@ -8,7 +8,7 @@ Actualmente, el proyecto incluye el analizador léxico, encargado de convertir c
 
 ---
 
-## 📁 Estructura del proyecto
+##  Estructura del proyecto
 
 ```
 Compilador-Coordenadas/
@@ -138,7 +138,7 @@ La estructura sintáctica de las instrucciones del lenguaje se define formalment
 * **`<cmd_hemisferio>`**: Acepta una o dos coordenadas geográficas.
 * **`<cmd_ubicacion>`**: Recibe un nombre de lugar en formato de texto (`STRING`).
 
-### 📋 Reglas Sintácticas del Lenguaje
+###  Reglas Sintácticas del Lenguaje
 
 * **Regla General**: Toda instrucción debe iniciar con una palabra reservada válida (`coordenada`, `validacion`, `distancia`, `hemisferio` o `ubicacion`) y continuar con la estructura de argumentos correspondiente a dicha función.
 * **Regla de Coordenada**: Una coordenada está compuesta obligatoriamente por:
@@ -184,7 +184,7 @@ Los diagramas representan las reglas léxicas y sintácticas consideradas para c
 | Hemisferio | ![Autómata de hemisferio](imagenes/Diagrama%20automata%20hemisferio.png) |
 | Ubicación | ![Autómata de ubicación](imagenes/Diagrama%20automata%20%20ubicacion.png) |
 
-## 🔄 Arquitectura y Flujo del Análisis Sintáctico
+##  Arquitectura y Flujo del Análisis Sintáctico
 
 El compilador utiliza un enfoque modular donde la entrada de usuario se tokeniza en la fase léxica y se procesa mediante un motor de análisis sintáctico desacoplado, configurado a través de `persistencia/reglas.json` y ejecutado por `ReglasSintacticas.py`:
 
@@ -237,7 +237,7 @@ python src/main.py
 Ejemplo de ejecución interactiva:
 ```text
 Ingrese la información: coordenada[4.7110, -74.0721]
-Tokens generados: [Token(IDENTIFICADOR, 'coordenada'), Token(LPARENT, '['), Token(NUMERO, 4.711), Token(COMA, ','), Token(NEGATIVO, -74.0721), Token(RPARENT, ']')]
+Tokens generados: [Token(IDENTIFICADOR, 'coordenada'), Token(LPARENT, '('), Token(NUMERO, 4.711), Token(COMA, ','), Token(NEGATIVO, -74.0721), Token(RPARENT, ')')]
 Resultado del análisis sintáctico: {'comando': 'coordenada', 'argumentos': (4.711, -74.0721)}
 ```
 
@@ -255,8 +255,8 @@ python src/AnalisiLexicoCoordenadas.py
 | `STRING`        | Texto alfabético                          | `Colombia`      |
 | `NUMERO`        | Número positivo entero o decimal         | `45.12`         |
 | `NEGATIVO`      | Número negativo entero o decimal         | `-19.43`        |
-| `LPARENT`       | Delimitador de apertura corchete `[`     | `[`             |
-| `RPARENT`       | Delimitador de cierre corchete `]`       | `]`             |
+| `LPARENT`       | Delimitador de apertura corchete `(`     | `(`             |
+| `RPARENT`       | Delimitador de cierre corchete `)`       | `)`             |
 | `COMA`          | Separador de argumentos `,`              | `,`             |
 | `COMILLA`       | Delimitador de comilla simple `'`        | `'`             |
 

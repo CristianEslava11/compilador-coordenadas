@@ -15,4 +15,4 @@ if __name__ == "__main__":
         print("Resultado del análisis sintáctico:", resultado)
         
     except (SyntaxError, ValueError) as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}")
