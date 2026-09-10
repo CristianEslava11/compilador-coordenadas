@@ -1,26 +1,8 @@
-
-
 import json
 import os
 
-def cargar_palabras_clave_desde_json():
-    ruta_json = os.path.join(os.path.dirname(__file__), "persistencia", "reglas.json")
-    try:
-        with open(ruta_json, "r", encoding="utf-8") as f:
-            datos = json.load(f)
-            if isinstance(datos, dict):
-                return list(datos.keys())
-            elif isinstance(datos, list):
-                regla_1 = datos[0].get("Regla_1", {})
-                palabras = regla_1.get("revisar_palabra_clave", [])
-                if palabras:
-                    return palabras
-    except Exception:
-        pass
-    return ["coordenada", "ubicacion", "distancia", "hemisferio", "validar"]
 
-
-PALABRAS_CLAVE = cargar_palabras_clave_desde_json()
+PALABRAS_CLAVE = ["coordenada", "ubicacion", "distancia", "hemisferio", "validar"]
 
 # El parser es un objeto que contiene la lista de tokens y la posicion actual del parser
 def revisar_palabra_clave(parser):
