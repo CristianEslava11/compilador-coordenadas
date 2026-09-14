@@ -6,8 +6,8 @@ def tokenizar(texto):
     tokens = []
     i = 0
     simbolos = {
-        "[" : "LPARENT",
-        "]" : "RPARENT",
+        "(" : "LPARENT",
+        ")" : "RPARENT",
         "," : "COMA",
         "'" : "COMILLA"
     }
@@ -28,8 +28,8 @@ def tokenizar(texto):
                 i += 1
             palabra = texto[inicio:i]
 
-            if palabra in palabrasClave:
-                tokens.append(Token("IDENTIFICADOR", palabra))
+            if palabra.lower() in palabrasClave:
+                tokens.append(Token("IDENTIFICADOR", palabra.lower()))
             else:
                 tokens.append(Token("STRING", palabra))
             continue
