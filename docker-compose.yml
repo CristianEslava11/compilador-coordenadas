@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  geoquery-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: geoquery_compiler
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
