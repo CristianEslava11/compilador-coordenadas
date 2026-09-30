@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from AnalisiLexicoCoordenadas import tokenizar
 from AnalisisSintactico import parser
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="GeoQuery", description="API para ejecutar el programa de lenguaje de coordenadas", version="1.0.0")
 
@@ -52,4 +54,11 @@ def ejecutar_codigo(request: CodigoRequest):
             "exito": False,
             "error": f"Error interno: {str(error)}"
         }
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # En producción acotarlo a "http://localhost"
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
