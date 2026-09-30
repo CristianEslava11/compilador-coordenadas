@@ -40,7 +40,9 @@ def tokenizar(texto):
             continue
 
 
-        if char.isdigit() or (char == "-" and texto[i + 1].isdigit()):
+        if char.isdigit() or (
+            char == "-" and i + 1 < n and texto[i + 1].isdigit()
+        ):
             inicio = i
             tipo_numero = "NUMERO"
             if char == "-":
