@@ -245,3 +245,52 @@ coordenada | ubicacion | distancia | hemisferio | validar
 ## Autora
 
 Proyecto desarrollado como parte de la formación en Ingeniería de Sistemas – UPTC.
+
+---
+
+## Interfaz de Escritorio (UI)
+
+Se ha implementado una **Interfaz Gráfica de Escritorio** que se conecta al motor de compilación existente sin modificar su lógica central.
+
+### Arquitectura de la Interfaz
+
+Se implementó una arquitectura limpia de separación de responsabilidades:
+- **Frontend:** Construido puramente con HTML, CSS (Tema Verde Militar) y JavaScript Vanilla.
+- **Backend:** Expuesto mediante `FastAPI` (a través de `servidor.py`).
+- **Orquestador:** `app.py` utiliza `pywebview` para crear una ventana nativa de escritorio y levantar en segundo plano el servidor local de forma transparente.
+
+![Flujo de la UI](https://mermaid.ink/img/pako:eNqNUctOwzAQ_JWVz-2DfwBBTjxUqWrcnLwkdrXGsu06VCnKv-M04cEBBy727MzuzG52xKwkRE-sFm5X9DblI5a8sZay914XpB1nL3X0SmsT1wY3b2r1oA3mD-vCGLQY1Z1UjR73e1c01VTV2tIu64c-bU_7lD0l_8P2tE_ZJ-x5n7JP2H_5P2Qf8d95S-e6v7K025b2064iW-3n2h3zC4vF4uN8eXqC9bHjF92XmC6R_d99Y8T471w8VnUuXN76g3_U416Z9m_s32u7n_0j3_T7s906_l575sQfB1l4w7V7wD1E3aGugb03i9Y3v4Y5aQp1c27qA-Y7WlJcwgIrmMMSFnAEh1iB9RkuX9bA?type=png)
+
+### Nuevos Archivos Implementados
+
+```
+src/
+├── app.py                  # Nuevo orquestador principal de la app de escritorio
+├── ui/                     # Recursos gráficos (Frontend)
+│   ├── index.html          # Estructura visual de la app
+│   ├── style.css           # Hoja de estilos (Tema Verde Militar)
+│   ├── main.js             # Lógica de peticiones y renderizado
+│   └── world_map.jpg       # Imagen de fondo estado inicial
+└── geo.spec                # Archivo de configuración actualizado para PyInstaller
+```
+
+### Ejecución de la App de Escritorio
+
+1. **Instalar Dependencia UI:**
+   Asegúrate de instalar los requisitos actualizados que ahora incluyen `pywebview`:
+   ```bash
+   pip install -r src/requirements.txt
+   ```
+
+2. **Modo Desarrollo:**
+   Puedes ejecutar directamente el orquestador:
+   ```bash
+   python src/app.py
+   ```
+
+3. **Empaquetado (Generar `.exe`):**
+   Para generar el instalable final ejecutable en Windows, corre el siguiente comando en la carpeta `src/`:
+   ```bash
+   pyinstaller geo.spec
+   ```
+   El programa resultante quedará ubicado en `src/dist/GeoQuery.exe`.

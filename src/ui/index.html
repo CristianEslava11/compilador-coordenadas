@@ -2,12 +2,126 @@
 <html lang="es">
 
 <head>
-    <title>GeoQuery</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="GeoQuery — Compilador de lenguaje de coordenadas geográficas" />
+  <title>GeoQuery — Compilador de Coordenadas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <h1>GeoQuery</h1>
-    <p>Bienvenido al programa de lenguaje de coordenadas</p>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-title">
+        <h1 class="app-name">GeoQuery</h1>
+        <span class="app-subtitle">Compilador de Coordenadas Geográficas</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main class="app-main">
+
+    <!-- ===== PANEL IZQUIERDO: EDITOR ===== -->
+    <section class="editor-panel" aria-label="Editor de comandos GEO">
+
+      <div class="panel-header">
+        <span class="panel-title">Editor</span>
+      </div>
+
+      <div class="editor-container">
+        <div class="line-numbers" id="line-numbers" aria-hidden="true">1</div>
+        <textarea
+          id="input-codigo"
+          class="code-editor"
+          placeholder="Escribe tu comando GEO aquí...&#10;&#10;Ejemplos:&#10;  coordenada(4.7110, -74.0721)&#10;  validar(4.7110, -74.0721)&#10;  distancia(4.7110, -74.0721), (6.2442, -75.5812)&#10;  hemisferio(4.7110, -74.0721)&#10;  ubicacion('Colombia')"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          rows="10"
+          aria-label="Editor de código GEO"
+        ></textarea>
+      </div>
+
+      <!-- Comandos rápidos -->
+      <div class="quick-commands">
+        <span class="quick-label">Insertar:</span>
+        <button class="quick-btn" data-cmd="coordenada(4.7110, -74.0721)" id="quick-coordenada">coordenada</button>
+        <button class="quick-btn" data-cmd="validar(4.7110, -74.0721)" id="quick-validar">validar</button>
+        <button class="quick-btn" data-cmd="distancia(4.7110, -74.0721), (6.2442, -75.5812)" id="quick-distancia">distancia</button>
+        <button class="quick-btn" data-cmd="hemisferio(4.7110, -74.0721)" id="quick-hemisferio">hemisferio</button>
+        <button class="quick-btn" data-cmd="ubicacion('Colombia')" id="quick-ubicacion">ubicacion</button>
+      </div>
+
+      <!-- Acciones principales -->
+      <div class="editor-actions">
+        <button class="btn-ejecutar" id="btn-ejecutar" aria-label="Ejecutar comando">
+          <span class="btn-icon" id="btn-icon">&#9654;</span>
+          <span id="btn-text">Ejecutar</span>
+          <div class="spinner" id="spinner" aria-hidden="true"></div>
+        </button>
+        <button class="btn-limpiar" id="btn-limpiar" aria-label="Limpiar editor y resultados">
+          Limpiar
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ===== PANEL DERECHO: RESULTADOS ===== -->
+    <section class="resultado-panel" aria-label="Panel de resultados">
+
+      <!-- Estado inicial con mapa mundi -->
+      <div class="estado-inicial" id="estado-inicial">
+        <img src="world_map.jpg" alt="Mapa mundi" class="mapa-img" />
+        <div class="mapa-overlay">
+          <p class="estado-titulo">Listo para ejecutar</p>
+          <p class="estado-desc">Escribe un comando GEO en el editor y presiona <strong>Ejecutar</strong></p>
+        </div>
+      </div>
+
+      <!-- Zona de tokens -->
+      <div class="resultado-bloque oculto" id="bloque-tokens">
+        <div class="bloque-header">
+          <span class="bloque-titulo">Tokens generados</span>
+          <span class="bloque-count" id="tokens-count"></span>
+        </div>
+        <div class="zona-tokens" id="zona-tokens" aria-live="polite"></div>
+      </div>
+
+      <!-- Zona de resultado estructurado -->
+      <div class="resultado-bloque oculto" id="bloque-resultado">
+        <div class="bloque-header">
+          <span class="bloque-titulo">Resultado del análisis</span>
+        </div>
+        <div class="zona-resultado" id="zona-resultado" aria-live="polite"></div>
+      </div>
+
+      <!-- Zona de error -->
+      <div class="resultado-bloque bloque-error oculto" id="bloque-error">
+        <div class="bloque-header">
+          <span class="bloque-titulo">Error detectado</span>
+        </div>
+        <div class="zona-error" id="zona-error" aria-live="assertive"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <span>GeoQuery · Lenguajes Formales y Compiladores · UPTC</span>
+    <span class="footer-sep">|</span>
+    <span>Python · FastAPI · pywebview</span>
+  </footer>
+
+  <script src="main.js"></script>
 </body>
 
 </html>
