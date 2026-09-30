@@ -1,0 +1,9 @@
+services:
+  upytc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: geo-language
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
