@@ -5,122 +5,200 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="GeoQuery — Compilador de lenguaje de coordenadas geográficas" />
-  <title>GeoQuery — Compilador de Coordenadas</title>
+  <title>GeoQuery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-  <!-- ===== HEADER ===== -->
-  <header class="app-header">
-    <div class="header-left">
-      <div class="header-title">
-        <h1 class="app-name">GeoQuery</h1>
-        <span class="app-subtitle">Compilador de Coordenadas Geográficas</span>
-      </div>
+  <!-- ===== BARRA SUPERIOR ===== -->
+  <header class="topbar">
+    <div class="marca">
+      <svg class="marca-logo" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.25" />
+        <ellipse cx="12" cy="12" rx="4.25" ry="9.25" />
+        <path d="M2.75 12h18.5M4.4 7h15.2M4.4 17h15.2" />
+      </svg>
+      <span class="marca-nombre">GeoQuery</span>
+      <span class="marca-sep">/</span>
+      <span class="marca-archivo">consulta.geo</span>
+    </div>
+
+    <div class="topbar-acciones">
+      <span class="servidor" id="servidor" data-estado="verificando" title="Estado del servidor de análisis">
+        <span class="servidor-punto"></span>
+        <span id="servidor-texto">Conectando…</span>
+      </span>
+      <button class="btn btn-secundario" id="btn-limpiar" type="button">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
+        Limpiar
+      </button>
+      <button class="btn btn-primario" id="btn-ejecutar" type="button">
+        <svg class="icono-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z" /></svg>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="btn-texto">Ejecutar</span>
+        <kbd>Ctrl ↵</kbd>
+      </button>
     </div>
   </header>
 
-  <!-- ===== MAIN LAYOUT ===== -->
-  <main class="app-main">
+  <!-- ===== ÁREA DE TRABAJO ===== -->
+  <main class="workspace">
 
-    <!-- ===== PANEL IZQUIERDO: EDITOR ===== -->
-    <section class="editor-panel" aria-label="Editor de comandos GEO">
+    <!-- ===== COLUMNA IZQUIERDA: EDITOR + REFERENCIA ===== -->
+    <section class="col-editor" aria-label="Editor">
 
-      <div class="panel-header">
-        <span class="panel-title">Editor</span>
+      <div class="panel panel-editor">
+        <div class="panel-cabecera">
+          <span class="panel-titulo">Editor</span>
+          <span class="panel-meta" id="editor-pos">Ln 1, Col 1</span>
+        </div>
+
+        <div class="editor">
+          <div class="editor-lineas" id="editor-lineas" aria-hidden="true">1</div>
+          <div class="editor-cuerpo">
+            <pre class="editor-resaltado" id="editor-resaltado" aria-hidden="true"></pre>
+            <textarea
+              id="editor-input"
+              class="editor-input"
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              placeholder="# Una instrucción por línea&#10;coordenada(4.7110, -74.0721)&#10;distancia(4.7110, -74.0721), (6.2442, -75.5812)"
+              aria-label="Código GEO"
+            ></textarea>
+          </div>
+        </div>
       </div>
 
-      <div class="editor-container">
-        <div class="line-numbers" id="line-numbers" aria-hidden="true">1</div>
-        <textarea
-          id="input-codigo"
-          class="code-editor"
-          placeholder="Escribe tu comando GEO aquí...&#10;&#10;Ejemplos:&#10;  coordenada(4.7110, -74.0721)&#10;  validar(4.7110, -74.0721)&#10;  distancia(4.7110, -74.0721), (6.2442, -75.5812)&#10;  hemisferio(4.7110, -74.0721)&#10;  ubicacion('Colombia')"
-          spellcheck="false"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          rows="10"
-          aria-label="Editor de código GEO"
-        ></textarea>
-      </div>
-
-      <!-- Comandos rápidos -->
-      <div class="quick-commands">
-        <span class="quick-label">Insertar:</span>
-        <button class="quick-btn" data-cmd="coordenada(4.7110, -74.0721)" id="quick-coordenada">coordenada</button>
-        <button class="quick-btn" data-cmd="validar(4.7110, -74.0721)" id="quick-validar">validar</button>
-        <button class="quick-btn" data-cmd="distancia(4.7110, -74.0721), (6.2442, -75.5812)" id="quick-distancia">distancia</button>
-        <button class="quick-btn" data-cmd="hemisferio(4.7110, -74.0721)" id="quick-hemisferio">hemisferio</button>
-        <button class="quick-btn" data-cmd="ubicacion('Colombia')" id="quick-ubicacion">ubicacion</button>
-      </div>
-
-      <!-- Acciones principales -->
-      <div class="editor-actions">
-        <button class="btn-ejecutar" id="btn-ejecutar" aria-label="Ejecutar comando">
-          <span class="btn-icon" id="btn-icon">&#9654;</span>
-          <span id="btn-text">Ejecutar</span>
-          <div class="spinner" id="spinner" aria-hidden="true"></div>
-        </button>
-        <button class="btn-limpiar" id="btn-limpiar" aria-label="Limpiar editor y resultados">
-          Limpiar
-        </button>
+      <div class="panel panel-referencia">
+        <div class="panel-cabecera">
+          <span class="panel-titulo">Instrucciones</span>
+          <span class="panel-meta">clic para agregar una línea</span>
+        </div>
+        <ul class="referencia" id="referencia">
+          <li>
+            <button type="button" data-cmd="coordenada(4.7110, -74.0721)">
+              <span class="ref-firma"><b>COORDENADA</b>(lat, lon)</span>
+              <span class="ref-desc">Define un punto geográfico</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" data-cmd="validar(4.7110, -74.0721)">
+              <span class="ref-firma"><b>VALIDAR</b>(lat, lon)</span>
+              <span class="ref-desc">Verifica que el punto esté en rango</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" data-cmd="distancia(4.7110, -74.0721), (6.2442, -75.5812)">
+              <span class="ref-firma"><b>DISTANCIA</b>(lat, lon), (lat, lon)</span>
+              <span class="ref-desc">Distancia entre dos puntos</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" data-cmd="hemisferio(4.7110, -74.0721)">
+              <span class="ref-firma"><b>HEMISFERIO</b>(lat, lon)</span>
+              <span class="ref-desc">Hemisferios a los que pertenece</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" data-cmd="ubicacion('Colombia')">
+              <span class="ref-firma"><b>UBICACION</b>('lugar')</span>
+              <span class="ref-desc">Busca un lugar por nombre</span>
+            </button>
+          </li>
+        </ul>
       </div>
 
     </section>
 
-    <!-- ===== PANEL DERECHO: RESULTADOS ===== -->
-    <section class="resultado-panel" aria-label="Panel de resultados">
+    <!-- ===== COLUMNA DERECHA: MAPA + SALIDA ===== -->
+    <section class="col-salida" aria-label="Resultados">
 
-      <!-- Estado inicial con mapa mundi -->
-      <div class="estado-inicial" id="estado-inicial">
-        <img src="world_map.jpg" alt="Mapa mundi" class="mapa-img" />
-        <div class="mapa-overlay">
-          <p class="estado-titulo">Listo para ejecutar</p>
-          <p class="estado-desc">Escribe un comando GEO en el editor y presiona <strong>Ejecutar</strong></p>
+      <div class="panel panel-mapa">
+        <div class="mapa" id="mapa">
+          <svg id="mapa-svg" role="img" aria-label="Mapa mundial"></svg>
+
+          <div class="mapa-leyenda" id="mapa-leyenda" hidden></div>
+
+          <div class="mapa-controles">
+            <button type="button" id="mapa-acercar" title="Acercar" aria-label="Acercar">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
+            </button>
+            <button type="button" id="mapa-alejar" title="Alejar" aria-label="Alejar">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" /></svg>
+            </button>
+            <button type="button" id="mapa-encuadrar" title="Encuadrar" aria-label="Encuadrar">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3" /></svg>
+            </button>
+          </div>
+
+          <div class="mapa-cursor" id="mapa-cursor" hidden></div>
         </div>
       </div>
 
-      <!-- Zona de tokens -->
-      <div class="resultado-bloque oculto" id="bloque-tokens">
-        <div class="bloque-header">
-          <span class="bloque-titulo">Tokens generados</span>
-          <span class="bloque-count" id="tokens-count"></span>
-        </div>
-        <div class="zona-tokens" id="zona-tokens" aria-live="polite"></div>
-      </div>
+      <div class="panel panel-salida">
+        <div class="pestanas" role="tablist">
+          <button type="button" role="tab" class="pestana activa" data-tab="resultado" aria-selected="true">
+            Resultado
+          </button>
+          <button type="button" role="tab" class="pestana" data-tab="tokens" aria-selected="false">
+            Tokens <span class="pestana-cuenta" id="cuenta-tokens"></span>
+          </button>
+          <button type="button" role="tab" class="pestana" data-tab="ast" aria-selected="false">
+            Árbol sintáctico
+          </button>
 
-      <!-- Zona de resultado estructurado -->
-      <div class="resultado-bloque oculto" id="bloque-resultado">
-        <div class="bloque-header">
-          <span class="bloque-titulo">Resultado del análisis</span>
+          <ol class="fases" id="fases" aria-label="Fases del compilador">
+            <li data-fase="lexico">Léxico</li>
+            <li data-fase="sintactico">Sintáctico</li>
+            <li data-fase="semantico">Semántico</li>
+          </ol>
         </div>
-        <div class="zona-resultado" id="zona-resultado" aria-live="polite"></div>
-      </div>
 
-      <!-- Zona de error -->
-      <div class="resultado-bloque bloque-error oculto" id="bloque-error">
-        <div class="bloque-header">
-          <span class="bloque-titulo">Error detectado</span>
+        <div class="tab-contenido" id="tab-resultado" role="tabpanel">
+          <div class="vacio" id="resultado-vacio">
+            Escribe una o varias instrucciones (una por línea) y presiona <kbd>Ctrl ↵</kbd> para analizarlas.
+          </div>
+          <div id="resultado-cuerpo" hidden></div>
         </div>
-        <div class="zona-error" id="zona-error" aria-live="assertive"></div>
+
+        <div class="tab-contenido" id="tab-tokens" role="tabpanel" hidden>
+          <div class="vacio" id="tokens-vacio">Aún no hay tokens.</div>
+          <table class="tabla-tokens" id="tabla-tokens" hidden>
+            <thead>
+              <tr><th>#</th><th>Ln</th><th>Tipo</th><th>Valor</th></tr>
+            </thead>
+            <tbody id="tokens-cuerpo"></tbody>
+          </table>
+        </div>
+
+        <div class="tab-contenido" id="tab-ast" role="tabpanel" hidden>
+          <div class="vacio" id="ast-vacio">Aún no hay árbol sintáctico.</div>
+          <pre class="ast" id="ast-cuerpo" hidden></pre>
+        </div>
       </div>
 
     </section>
-
   </main>
 
-  <!-- ===== FOOTER ===== -->
-  <footer class="app-footer">
-    <span>GeoQuery · Lenguajes Formales y Compiladores · UPTC</span>
-    <span class="footer-sep">|</span>
-    <span>Python · FastAPI · pywebview</span>
+  <!-- ===== BARRA DE ESTADO ===== -->
+  <footer class="statusbar">
+    <span class="estado" id="estado" data-tipo="listo">Listo</span>
+    <span class="statusbar-espacio"></span>
+    <span>GEO</span>
+    <span>UTF-8</span>
+    <span>UPTC · Lenguajes Formales</span>
   </footer>
 
+  <script src="vendor/d3.min.js"></script>
+  <script src="vendor/topojson-client.min.js"></script>
+  <script src="vendor/mundo-50m.js"></script>
+  <script src="mapa.js"></script>
   <script src="main.js"></script>
 </body>
 

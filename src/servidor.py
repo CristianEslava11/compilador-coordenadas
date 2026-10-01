@@ -23,37 +23,51 @@ def inicio():
 			"estado":"en desarrollo"}
 
 
-@app.post("/iniciar")
-def ejecutar_codigo(request: CodigoRequest):
+def analizar_instruccion(texto, num_linea):
+    """Analiza una sola instrucción (una línea) y devuelve su resultado.
+    "fase" indica en qué etapa del compilador ocurrió el error (lexico, sintactico, interno)."""
+    fase = "lexico"
+    tokens = []
+    salida = {"linea": num_linea, "codigo": texto}
     try:
-        codigo = request.codigo.strip()
-        if not codigo:
-            return {"exito": False, "error": "No se ingresó código"}
-        tokens = tokenizar(codigo)
+        tokens = tokenizar(texto)
+
+        fase = "sintactico"
         analizador = parser(tokens)
         resultado = analizador.analizador()
         if analizador.pos != len(tokens):
-            return {
-                "exito": False,
-                "error": "La consulta contiene tokens adicionales no válidos"
-            }
+            raise SyntaxError("La instrucción contiene tokens adicionales no válidos")
 
-        return {
-            "exito": True,
-            "resultado": resultado,
-            "tokens": [token.to_json() for token in tokens]
-        }
-
+        salida.update(exito=True, resultado=resultado)
     except (SyntaxError, ValueError) as error:
-        return {
-            "exito": False,
-            "error": str(error)
-        }
+        salida.update(exito=False, fase=fase, error=str(error))
     except Exception as error:
-        return {
-            "exito": False,
-            "error": f"Error interno: {str(error)}"
-        }
+        salida.update(exito=False, fase="interno", error=f"Error interno: {error}")
+
+    salida["tokens"] = [{**token.to_json(), "linea": num_linea} for token in tokens]
+    return salida
+
+
+@app.post("/iniciar")
+def ejecutar_codigo(request: CodigoRequest):
+    # Una instrucción por línea; se ignoran las líneas vacías y los comentarios (#),
+    # igual que en el modo archivo del CLI (main.py)
+    instrucciones = [
+        analizar_instruccion(linea.strip(), num_linea)
+        for num_linea, linea in enumerate(request.codigo.splitlines(), start=1)
+        if linea.strip() and not linea.strip().startswith("#")
+    ]
+
+    if not instrucciones:
+        return {"exito": False, "error": "No se ingresó código", "instrucciones": [], "tokens": []}
+
+    errores = [i for i in instrucciones if not i["exito"]]
+    return {
+        "exito": not errores,
+        "error": f"Línea {errores[0]['linea']}: {errores[0]['error']}" if errores else None,
+        "instrucciones": instrucciones,
+        "tokens": [token for i in instrucciones for token in i["tokens"]],
+    }
 
 app.add_middleware(
     CORSMiddleware,
