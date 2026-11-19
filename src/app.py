@@ -6,18 +6,13 @@ import time
 
 import uvicorn
 import webview
-from fastapi.staticfiles import StaticFiles
 
 from servidor import app as fastapi_app
 
 HOST = "127.0.0.1"
 
-# Carpeta base: dentro del .exe de PyInstaller los archivos se extraen en sys._MEIPASS
-BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-
-# La UI se sirve desde el mismo servidor que la API (http://HOST:PUERTO/ui/),
-# así la interfaz siempre habla con el backend de esta misma instancia.
-fastapi_app.mount("/ui", StaticFiles(directory=os.path.join(BASE, "ui"), html=True), name="ui")
+# La UI (/ui/) ya la monta servidor.py, así la interfaz siempre habla con el
+# backend de esta misma instancia.
 
 
 def puerto_libre():

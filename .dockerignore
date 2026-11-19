@@ -4,8 +4,17 @@ __pycache__
 *.pyd
 .git
 .gitignore
+.github
+.claude
 build
 dist
+src/build
+src/dist
 *.spec
+*.onetoc2
 .env
 .venv
+venv
+imagenes
+docs
+tests
