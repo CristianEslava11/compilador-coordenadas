@@ -1,0 +1,10 @@
+# Blueprint de Render: despliega el Dockerfile y se redespliega en cada push a main.
+services:
+  - type: web
+    name: geoquery
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /
