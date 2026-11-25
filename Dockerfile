@@ -20,7 +20,7 @@ USER geo
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD python -c "import os,urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"PORT\"]}/')" || exit 1
+  CMD python -c "import os,urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"PORT\"]}/info')" || exit 1
 
 # La plataforma de despliegue (Render, Railway, Fly...) inyecta $PORT; en local es 8000
 CMD ["sh", "-c", "uvicorn servidor:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]

@@ -1,12 +1,14 @@
-// En la app de escritorio la UI la sirve el mismo backend (/ui/), así que se usa su
-// mismo origen. Si se abre de otra forma (archivo suelto, otro servidor), se usa
-// el backend por defecto (python -m uvicorn servidor:app / Docker).
+// La UI la sirve el mismo backend en /ui/ (app de escritorio, Docker o Render), así que
+// se usa su mismo origen. Si se abre de otra forma (archivo suelto, otro servidor),
+// se usa el backend local por defecto.
 const API_BASE = location.pathname.startsWith("/ui/") ? location.origin : "http://127.0.0.1:8000";
 const PALABRAS_CLAVE = ["coordenada", "validar", "distancia", "hemisferio", "ubicacion"];
 
 const NOMBRE_FASE = {
   lexico: "Error léxico",
   sintactico: "Error sintáctico",
+  semantico: "Error semántico",
+  ejecucion: "Error de ejecución",
   interno: "Error interno",
 };
 
@@ -150,7 +152,7 @@ function activarPestana(nombre) {
 // ─── ESTADO DEL SERVIDOR ─────────────────────────────────────────────────────
 async function verificarServidor() {
   try {
-    const r = await fetch(`${API_BASE}/`, { cache: "no-store" });
+    const r = await fetch(`${API_BASE}/info`, { cache: "no-store" });
     if (!r.ok) throw new Error();
     const info = await r.json();
     servidor.dataset.estado = "conectado";
@@ -276,12 +278,16 @@ function renderFilaInstruccion(i) {
         <span class="instr-datos">${escapeHTML(limpiarMensaje(i.error))}</span>
       </li>`;
   }
-  const { comando, argumentos } = i.resultado;
+  const { comando } = i.resultado;
+  const invalida = comando === "validar" && !i.salida.valida;
   return `
     <li class="instr" data-linea="${i.linea}">
       <span class="instr-linea">${i.linea}</span>
       <span class="instr-cmd">${escapeHTML(comando.toUpperCase())}</span>
-      <span class="instr-datos">${escapeHTML(describirArgumentos(comando, argumentos))}</span>
+      <span class="instr-datos">
+        <span class="instr-res${invalida ? " instr-res-invalida" : ""}">${escapeHTML(describirSalida(i))}</span>
+        <span class="instr-args">${escapeHTML(describirEntrada(i))}</span>
+      </span>
     </li>`;
 }
 
@@ -289,6 +295,35 @@ function describirArgumentos(comando, args) {
   if (comando === "ubicacion") return `'${args}'`;
   if (comando === "distancia") return `A (${args[0][0]}, ${args[0][1]})  →  B (${args[1][0]}, ${args[1][1]})`;
   return `${args[0]}, ${args[1]}`;
+}
+
+const formatoKm = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
+
+// Resultado de la ejecución de una instrucción, en texto
+function describirSalida({ resultado, salida }) {
+  switch (resultado.comando) {
+    case "coordenada": return salida.lugar ?? "Sin lugar asociado (océano o zona sin datos)";
+    case "validar":    return salida.valida
+                         ? "Coordenada válida"
+                         : `Coordenada inválida: ${salida.motivos.join("; ")}`;
+    case "distancia":  return `${formatoKm.format(salida.kilometros)} km`;
+    case "hemisferio": return `${salida.latitudinal} · ${salida.longitudinal}`;
+    case "ubicacion":  return salida.nombre;
+    default:           return "";
+  }
+}
+
+// Datos de entrada (o, en UBICACION, las coordenadas encontradas)
+function describirEntrada({ resultado, salida }) {
+  if (resultado.comando === "ubicacion") {
+    return `'${resultado.argumentos}'  →  ${salida.latitud.toFixed(4)}, ${salida.longitud.toFixed(4)}`;
+  }
+  return describirArgumentos(resultado.comando, resultado.argumentos);
+}
+
+// Primera parte de un nombre de Nominatim: "Tunja, Centro, Boyacá, …" -> "Tunja"
+function nombreCorto(nombre) {
+  return String(nombre).split(",")[0].trim();
 }
 
 // Clic en una instrucción: se resalta en el mapa y se selecciona en el editor.
@@ -317,22 +352,26 @@ function dibujarEnMapa() {
     const { comando, argumentos } = i.resultado;
     const grupo = i.linea;
 
-    if (comando === "ubicacion") continue;
-
-    if (comando === "distancia") {
+    if (comando === "ubicacion") {
+      // Se dibuja el punto que devolvió la búsqueda del lugar
+      const { latitud: lat, longitud: lon, nombre } = i.salida;
+      puntos.push({ lat, lon, grupo, etiqueta: etiquetaCorta ? `L${grupo} ${nombreCorto(nombre)}` : nombreCorto(nombre) });
+    } else if (comando === "distancia") {
       const [[la1, lo1], [la2, lo2]] = argumentos;
       const desde = { lat: la1, lon: lo1 };
       const hasta = { lat: la2, lon: lo2 };
       puntos.push({ ...desde, grupo, etiqueta: etiquetaCorta ? `L${grupo} A` : "A" });
       puntos.push({ ...hasta, grupo, etiqueta: etiquetaCorta ? `L${grupo} B` : "B" });
-      rutas.push({ grupo, desde, hasta });
-    } else {
+      rutas.push({ grupo, desde, hasta, etiqueta: `${formatoKm.format(i.salida.kilometros)} km` });
+    } else if (comando !== "validar" || i.salida.valida) {
       const [lat, lon] = argumentos;
       puntos.push({ lat, lon, grupo, etiqueta: etiquetaCorta ? `L${grupo}` : `${lat}, ${lon}` });
     }
   }
 
   puntosOmitidos = Mapa.mostrar({ puntos, rutas });
+  // Crédito a OpenStreetMap, solo cuando se muestran datos que vienen de ese servicio
+  $("mapa-atribucion").hidden = !correctas.some((i) => i.salida?.fuente);
   actualizarLeyenda();
 }
 
@@ -345,11 +384,9 @@ function actualizarLeyenda() {
                  (correctas.length === 1 ? correctas[0] : null);
 
   if (activa) {
-    const { comando, argumentos } = activa.resultado;
+    const { comando } = activa.resultado;
     titulo = correctas.length > 1 ? `Línea ${activa.linea} · ${comando.toUpperCase()}` : comando.toUpperCase();
-    detalle = comando === "ubicacion"
-      ? `'${argumentos}' — búsqueda de lugares aún no disponible`
-      : describirArgumentos(comando, argumentos);
+    detalle = `${describirSalida(activa)}\n${describirEntrada(activa)}`;
   } else {
     titulo = "Consulta";
     detalle = `${correctas.length} instrucciones en el mapa · clic en una para enfocarla`;
@@ -381,6 +418,7 @@ function mostrarErrorServidor(titulo, mensaje) {
 
   setEstado("error", `${titulo}: ${mensaje.split("\n")[0]}`);
   leyenda.hidden = true;
+  $("mapa-atribucion").hidden = true;
   Mapa.mostrar({});
   activarPestana("resultado");
 }
@@ -421,12 +459,13 @@ function nodoInstruccion(i) {
   const coord = ([lat, lon]) => [hoja("latitud ", lat), hoja("longitud", lon)];
   const etiquetaLinea = `<span class="ast-rama">línea ${i.linea}</span>`;
 
-  if (!i.exito) {
-    return n(`${etiquetaLinea}  <span class="ast-error">${escapeHTML(NOMBRE_FASE[i.fase] ?? "Error")}</span>`);
-  }
+  const marcaError = i.exito ? "" : `  <span class="ast-error">${escapeHTML(NOMBRE_FASE[i.fase] ?? "Error")}</span>`;
+
+  // Sin árbol: la instrucción falló antes de terminar el análisis sintáctico
+  if (!i.resultado) return n(`${etiquetaLinea}${marcaError}`);
 
   const { comando, argumentos } = i.resultado;
-  const raiz = `<span class="ast-nodo">${escapeHTML(comando)}</span>  ${etiquetaLinea}`;
+  const raiz = `<span class="ast-nodo">${escapeHTML(comando)}</span>  ${etiquetaLinea}${marcaError}`;
   if (comando === "ubicacion") return n(raiz, [hoja("lugar", `'${argumentos}'`, "ast-texto")]);
   if (comando === "distancia") {
     return n(raiz, [
@@ -460,14 +499,18 @@ function renderArbol() {
 }
 
 // ─── ESTADO GENERAL ──────────────────────────────────────────────────────────
-// Léxico falla si alguna línea tuvo error léxico; sintáctico, si alguna tuvo error
-// sintáctico. Si solo hubo errores léxicos, el sintáctico queda pendiente.
+// Una fase falla si alguna línea tuvo error en ella. Si alguna línea se detuvo en una
+// fase anterior, las siguientes quedan pendientes (esa línea no llegó a revisarse en ellas).
+const ORDEN_FASES = ["lexico", "sintactico", "semantico", "ejecucion"];
+
 function marcarFases(errores) {
   const estados = {};
   if (errores) {
     const hay = (fase) => errores.some((e) => e.fase === fase);
-    estados.lexico = hay("lexico") ? "error" : "ok";
-    estados.sintactico = hay("sintactico") ? "error" : (hay("lexico") ? undefined : "ok");
+    ORDEN_FASES.forEach((fase, i) => {
+      if (hay(fase)) estados[fase] = "error";
+      else if (!ORDEN_FASES.slice(0, i).some(hay)) estados[fase] = "ok";
+    });
   }
   fases.querySelectorAll("li").forEach((li) => {
     const e = estados[li.dataset.fase];
@@ -496,6 +539,7 @@ function limpiarTodo() {
   marcarFases(null);
   setEstado("listo", "Listo");
   leyenda.hidden = true;
+  $("mapa-atribucion").hidden = true;
   Mapa.limpiar();
   activarPestana("resultado");
 }

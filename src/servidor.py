@@ -1,5 +1,4 @@
 import os
-import sys
 
 from fastapi import FastAPI
 from fastapi import HTTPException
@@ -8,8 +7,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from AnalisiLexicoCoordenadas import tokenizar
-from AnalisisSintactico import parser
+from Compilador import compilar_programa
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,60 +15,45 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="GeoQuery", description="API para ejecutar el programa de lenguaje de coordenadas", version="1.0.0")
 
 
+@app.middleware("http")
+async def revalidar_interfaz(request, call_next):
+	# Obliga al navegador a comprobar si los archivos de la interfaz cambiaron (responde 304
+	# si no), para que después de una actualización nadie se quede con el CSS/JS viejo
+	respuesta = await call_next(request)
+	if request.url.path.startswith("/ui"):
+		respuesta.headers["Cache-Control"] = "no-cache"
+	return respuesta
+
+
 class CodigoRequest(BaseModel):
 	codigo: str
 
 
-
-# Carpeta base: dentro del .exe de PyInstaller los archivos se extraen en sys._MEIPASS
-BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+INFO = {"lenguaje":"GEO",
+		"version":"1.0.0",
+		"estado":"en desarrollo",
+		"datos_geograficos":"© OpenStreetMap contributors (Nominatim)"}
 
 
 @app.get("/")
 def inicio(request: Request):
-	# Un navegador que entra a la raíz se envía a la interfaz; el fetch() de la UI
-	# (Accept: */*) sigue recibiendo el JSON de estado.
+	# Un navegador que entra a la raíz se envía a la interfaz; un cliente de la API
+	# (curl, fetch, health checks) recibe el JSON de estado.
 	if "text/html" in request.headers.get("accept", ""):
 		return RedirectResponse("/ui/")
-	return {"lenguaje":"GEO",
-			"version":"1.0.0",
-			"estado":"en desarrollo"}
+	return INFO
 
 
-def analizar_instruccion(texto, num_linea):
-    """Analiza una sola instrucción (una línea) y devuelve su resultado.
-    "fase" indica en qué etapa del compilador ocurrió el error (lexico, sintactico, interno)."""
-    fase = "lexico"
-    tokens = []
-    salida = {"linea": num_linea, "codigo": texto}
-    try:
-        tokens = tokenizar(texto)
-
-        fase = "sintactico"
-        analizador = parser(tokens)
-        resultado = analizador.analizador()
-        if analizador.pos != len(tokens):
-            raise SyntaxError("La instrucción contiene tokens adicionales no válidos")
-
-        salida.update(exito=True, resultado=resultado)
-    except (SyntaxError, ValueError) as error:
-        salida.update(exito=False, fase=fase, error=str(error))
-    except Exception as error:
-        salida.update(exito=False, fase="interno", error=f"Error interno: {error}")
-
-    salida["tokens"] = [{**token.to_json(), "linea": num_linea} for token in tokens]
-    return salida
+@app.get("/info")
+def info():
+	return INFO
 
 
 @app.post("/iniciar")
 def ejecutar_codigo(request: CodigoRequest):
-    # Una instrucción por línea; se ignoran las líneas vacías y los comentarios (#),
-    # igual que en el modo archivo del CLI (main.py)
-    instrucciones = [
-        analizar_instruccion(linea.strip(), num_linea)
-        for num_linea, linea in enumerate(request.codigo.splitlines(), start=1)
-        if linea.strip() and not linea.strip().startswith("#")
-    ]
+    # Una instrucción por línea; se ignoran las líneas vacías y los comentarios (#).
+    # Cada instrucción pasa por las fases léxica, sintáctica, semántica y de ejecución.
+    instrucciones = compilar_programa(request.codigo)
 
     if not instrucciones:
         return {"exito": False, "error": "No se ingresó código", "instrucciones": [], "tokens": []}
@@ -94,6 +77,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# La UI se sirve desde el mismo servidor que la API (/ui/), tanto en la web/Docker
-# como en la app de escritorio (app.py importa esta misma app).
-app.mount("/ui", StaticFiles(directory=os.path.join(BASE, "ui"), html=True), name="ui")
+# Interfaz web (src/ui) servida por el mismo backend en /ui/.
+# La usan tanto la app de escritorio (app.py) como el despliegue en línea (Docker/Render).
+# En el .exe de PyInstaller, __file__ apunta a la carpeta donde se extraen los archivos.
+RUTA_UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
+app.mount("/ui", StaticFiles(directory=RUTA_UI, html=True), name="ui")

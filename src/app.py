@@ -1,18 +1,15 @@
-import os
 import socket
-import sys
 import threading
 import time
 
 import uvicorn
 import webview
 
+# servidor.py expone la API y además sirve la interfaz en /ui/,
+# así la ventana siempre habla con el backend de esta misma instancia.
 from servidor import app as fastapi_app
 
 HOST = "127.0.0.1"
-
-# La UI (/ui/) ya la monta servidor.py, así la interfaz siempre habla con el
-# backend de esta misma instancia.
 
 
 def puerto_libre():

@@ -1,11 +1,45 @@
-import subprocess
 import sys
 import os
 
-from AnalisiLexicoCoordenadas import tokenizar
-from AnalisisSintactico import parser
+from Compilador import compilar_instruccion, compilar_programa
 
 EXTENSION = ".geo"
+
+NOMBRE_FASE = {
+    "lexico": "Error léxico",
+    "sintactico": "Error sintáctico",
+    "semantico": "Error semántico",
+    "ejecucion": "Error de ejecución",
+    "interno": "Error interno",
+}
+
+
+def describir_salida(instruccion):
+    """Texto con el resultado de una instrucción ya ejecutada."""
+    comando = instruccion["resultado"]["comando"]
+    salida = instruccion["salida"]
+    if comando == "coordenada":
+        return salida["lugar"] or "Sin lugar asociado (océano o zona sin datos)"
+    if comando == "validar":
+        return "Coordenada válida" if salida["valida"] else "Coordenada inválida: " + "; ".join(salida["motivos"])
+    if comando == "distancia":
+        return f"{salida['kilometros']} km"
+    if comando == "hemisferio":
+        return f"{salida['latitudinal']} · {salida['longitudinal']}"
+    if comando == "ubicacion":
+        return f"{salida['nombre']} ({salida['latitud']:.4f}, {salida['longitud']:.4f})"
+    return str(salida)
+
+
+def mostrar_instruccion(instruccion):
+    print("Tokens:", [f"{t['tipo']}:{t['valor']}" for t in instruccion["tokens"]])
+    if instruccion.get("resultado"):
+        print("Árbol:", instruccion["resultado"])
+    if instruccion["exito"]:
+        print("Resultado:", describir_salida(instruccion))
+    else:
+        print(f"{NOMBRE_FASE.get(instruccion['fase'], 'Error')}: {instruccion['error']}")
+
 
 def ejecutar_linea(texto):
     texto = texto.strip()
@@ -13,17 +47,9 @@ def ejecutar_linea(texto):
     if not texto:
         return True
 
-    try:
-        tokens = tokenizar(texto)
-        print("Tokens:", tokens)
-
-        analizador = parser(tokens)
-        resultado = analizador.analizador()
-        print("Resultado:", resultado)
-        return resultado
-    except (SyntaxError, ValueError) as error:
-        print(f"Error de sintaxis/léxico: {error}")
-        return True
+    instruccion = compilar_instruccion(texto, 1)
+    mostrar_instruccion(instruccion)
+    return instruccion
 
 def ejecutar_archivos(ruta):
 
@@ -45,13 +71,10 @@ def ejecutar_archivos(ruta):
         return False
 
     print(f"Procesando archivo: {ruta}")
-    lineas = contenido.splitlines()
-    for num_linea, linea in enumerate(lineas, start=1):
-        linea = linea.strip()
-        if not linea or linea.startswith("#"):
-            continue
-        print(f"\n--- Línea {num_linea}: {linea} ---")
-        ejecutar_linea(linea)
+    # Misma regla que la interfaz: una instrucción por línea, # para comentarios
+    for instruccion in compilar_programa(contenido):
+        print(f"\n--- Línea {instruccion['linea']}: {instruccion['codigo']} ---")
+        mostrar_instruccion(instruccion)
     return True
 
 def modo_interactivo():
@@ -85,13 +108,16 @@ def mostrar_ayuda():
 
     print("GeoQuery Language")
     print("Uso:")
-    print("COORDENADA (latitud, longitud)")
-    print("VALIDAR (latitud, longitud)")
-    print("UBICACION (latitud, longitud)")
-    print("DISTANCIA (latitud1, longitud1, latitud2, longitud2)")
-    print("HEMISFERIO (latitud, longitud)")
-    print("CERRAR para salir")
-    print(f"Extension soportada: {EXTENSION}")
+    print("  python main.py                  modo interactivo (GEO>)")
+    print(f"  python main.py archivo{EXTENSION}     ejecuta un programa (una instrucción por línea, # comentarios)")
+    print("Instrucciones:")
+    print("  COORDENADA(latitud, longitud)         lugar en esa coordenada")
+    print("  VALIDAR(latitud, longitud)            indica si la coordenada es válida")
+    print("  DISTANCIA(lat1, lon1), (lat2, lon2)   distancia en km entre dos puntos")
+    print("  HEMISFERIO(latitud, longitud)         hemisferios de la coordenada")
+    print("  UBICACION('lugar')                    coordenadas de un lugar")
+    print("Escribe CERRAR para salir del modo interactivo")
+    print("Datos de lugares: © OpenStreetMap contributors (Nominatim)")
 
 def main():
 

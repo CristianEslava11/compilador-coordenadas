@@ -78,7 +78,10 @@ class parser:
         
         #si la regla no existe, lanzar SyntaxError
         if config_regla is None:
-            raise SyntaxError(f"Error: No hay reglas definidas para el token actual: {token.tipo}, {token.valor}")
+            validas = ", ".join(clave.upper() for clave in self.reglas)
+            if token.tipo != "STRING":
+                raise SyntaxError(f"Error: La línea debe comenzar con una instrucción ({validas})")
+            raise SyntaxError(f"Error: Instrucción desconocida '{token.valor}'. Las instrucciones válidas son: {validas}")
 
         #se ejecuta la regla de inicio apuntada desde el JSON
         comando = self.ejecucion_metodo(config_regla["funcion_clave"])

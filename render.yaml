@@ -1,4 +1,5 @@
 # Blueprint de Render: despliega el Dockerfile y se redespliega en cada push a main.
+# https://render.com/docs/blueprint-spec
 services:
   - type: web
     name: geoquery
@@ -7,4 +8,4 @@ services:
     plan: free
     branch: main
     autoDeploy: true
-    healthCheckPath: /
+    healthCheckPath: /info

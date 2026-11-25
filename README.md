@@ -1,350 +1,288 @@
-# Librería de Coordenadas Geográficas
+# GeoQuery — Compilador de Coordenadas Geográficas
 
-Proyecto académico desarrollado para la asignatura de **Lenguajes Formales y Compiladores** de la UPTC.
+Proyecto académico de la asignatura **Lenguajes Formales y Compiladores** de la UPTC.
 
-El objetivo del proyecto es construir un lenguaje de dominio específico (DSL) para trabajar con coordenadas geográficas y ofrecerlo a través de tres modos de ejecución: línea de comandos, interfaz web y aplicación de escritorio.
+GeoQuery es un compilador para **GEO**, un lenguaje de dominio específico (DSL) para trabajar con coordenadas geográficas: validar coordenadas, calcular distancias, identificar hemisferios, buscar lugares por nombre y obtener el lugar que corresponde a una coordenada.
 
----
-
-## 1. Objetivo del proyecto
-
-El compilador permite:
-
-- validar coordenadas geográficas
-- consultar lugares a partir de una coordenada
-- calcular distancias entre puntos
-- identificar hemisferios
-- buscar ubicaciones por nombre
-
-La lógica principal se implementa en Python, mientras que la interfaz se presenta en HTML/CSS/JavaScript y, para la versión escritorio, se usa una ventana nativa con pywebview.
+El compilador implementa las cuatro fases **léxica → sintáctica → semántica → ejecución** y se puede usar de tres formas: una **interfaz gráfica** con editor y mapa (aplicación de escritorio o web), una **consola** (CLI) y una **API REST**.
 
 ---
 
-## 2. Estructura del proyecto
+## El lenguaje GEO
+
+Un programa GEO tiene **una instrucción por línea**. Las líneas vacías se ignoran y las que empiezan con `#` son comentarios. Las palabras clave no distinguen mayúsculas de minúsculas.
 
 ```text
-Compilador-Coordenadas/
-├── Dockerfile
-├── docker-compose.yml
-├── README.md
-├── DOCUMENTACION.md
-├── docs/
-│   └── Pseudocodigo.txt
-├── imagenes/
-├── ProgramasCompilador/
-│   ├── ejemplo.geo
-│   └── ...
-├── src/
-│   ├── AnalisiLexicoCoordenadas.py   # Analizador léxico
-│   ├── AnalisisSintactico.py         # Parser y búsqueda de reglas
-│   ├── ReglasSintacticas.py          # Validación sintáctica y ejecución
-│   ├── Token.py                     # Clase Token
-│   ├── main.py                      # CLI del compilador
-│   ├── servidor.py                  # API FastAPI para la versión web
-│   ├── app.py                       # Orquestador de la versión escritorio
-│   ├── requirements.txt             # Dependencias del proyecto
-│   ├── geo.spec                    # Configuración de PyInstaller
-│   ├── persistencia/
-│   │   └── reglas.json              # Reglas del lenguaje
-│   └── ui/
-│       ├── index.html               # Interfaz principal web/escritorio
-│       ├── main.js                  # Lógica del frontend
-│       ├── mapa.js                 # Render del mapa y coordenadas
-│       ├── style.css               # Estilos visuales
-│       └── vendor/
-│           ├── d3.min.js
-│           ├── mundo-50m.js
-│           └── topojson-client.min.js
-└── src/build/                       # Archivos generados por PyInstaller
+# Programa de ejemplo
+COORDENADA(5.5353, -73.3678)
+VALIDAR(95, -200)
+DISTANCIA(4.7110, -74.0721), (6.2442, -75.5812)
+HEMISFERIO(-33.8688, 151.2093)
+UBICACION('San Andrés')
 ```
+
+### Instrucciones
+
+| Instrucción | Sintaxis | Resultado | Ejemplo de salida |
+|---|---|---|---|
+| `COORDENADA` | `coordenada(lat, lon)` | Lugar que corresponde a la coordenada | `Tunja, Boyacá, Colombia` |
+| `VALIDAR` | `validar(lat, lon)` | Si la coordenada es válida y, si no, por qué | `Coordenada inválida: latitud 95 fuera de rango…` |
+| `DISTANCIA` | `distancia(lat1, lon1), (lat2, lon2)` | Distancia en km sobre la superficie terrestre (fórmula de Haversine) | `238.67 km` |
+| `HEMISFERIO` | `hemisferio(lat, lon)` | Hemisferio Norte/Sur y Este/Oeste | `Sur · Este` |
+| `UBICACION` | `ubicacion('lugar')` | Coordenadas del lugar buscado | `Isla de San Andrés, Colombia (12.5376, -81.7204)` |
+
+- La **latitud** debe estar entre `-90` y `90`, y la **longitud** entre `-180` y `180`.
+- En `HEMISFERIO`, los puntos sobre el ecuador, el meridiano de Greenwich o el antimeridiano (±180°) se reportan como límite entre hemisferios.
+- El nombre del lugar en `UBICACION` va entre comillas simples y puede tener espacios, tildes y puntos: `ubicacion('Bogotá D.C.')`.
+- `COORDENADA` y `UBICACION` consultan el servicio Nominatim de OpenStreetMap, así que **requieren conexión a internet**.
+
+### Gramática
+
+Gramática en notación EBNF. Los símbolos en MAYÚSCULAS son tokens del analizador léxico.
+
+```ebnf
+programa     = { linea } ;
+linea        = ( instruccion | comentario | vacia ) FIN_DE_LINEA ;
+comentario   = "#" { cualquier_caracter } ;
+vacia        = { espacio } ;
+
+instruccion  = coordenada_i | validar_i | distancia_i | hemisferio_i | ubicacion_i ;
+
+coordenada_i = "coordenada" coordenada ;
+validar_i    = "validar"    coordenada ;
+hemisferio_i = "hemisferio" coordenada ;
+distancia_i  = "distancia"  coordenada COMA coordenada ;
+ubicacion_i  = "ubicacion"  LPARENT COMILLA STRING COMILLA RPARENT ;
+
+coordenada   = LPARENT numero COMA numero RPARENT ;
+numero       = NUMERO | NEGATIVO ;
+```
+
+> Los comentarios ocupan una línea completa: no se puede escribir un comentario después de una instrucción en la misma línea.
+
+### Tokens
+
+| Token | Descripción | Expresión regular | Ejemplo |
+|---|---|---|---|
+| `IDENTIFICADOR` | Palabra clave del lenguaje | `coordenada \| validar \| distancia \| hemisferio \| ubicacion` | `distancia` |
+| `NUMERO` | Número positivo, entero o decimal | `[0-9]+(\.[0-9]+)?` | `4.7110` |
+| `NEGATIVO` | Número negativo, entero o decimal | `-[0-9]+(\.[0-9]+)?` | `-74.0721` |
+| `STRING` | Texto entre comillas, o palabra que no es clave | `'[^']*'` / `[a-zA-Z]+` | `San Andrés` |
+| `LPARENT` | Paréntesis de apertura | `\(` | `(` |
+| `RPARENT` | Paréntesis de cierre | `\)` | `)` |
+| `COMA` | Separador | `,` | `,` |
+| `COMILLA` | Delimitador de cadenas | `'` | `'` |
 
 ---
 
-## 3. Arquitectura del proyecto
+## Arquitectura del compilador
 
-El proyecto está compuesto por tres capas:
+```text
+código fuente ─► Léxico ─► tokens ─► Sintáctico ─► árbol ─► Semántico ─► Ejecución ─► resultado
+                  │                    │                     │              │
+        AnalisiLexico...py   AnalisisSintactico.py   AnalisisSemantico.py  Ejecucion.py
+                             ReglasSintacticas.py                          ServicioGeografico.py
+                             persistencia/reglas.json
+```
 
-1. **Lógica del compilador**
-   - Se encarga del análisis léxico y sintáctico.
-   - Está en los archivos de la carpeta `src`.
+`Compilador.py` orquesta las fases para cada línea del programa. Lo usan por igual la consola (`main.py`), la API (`servidor.py`) y la interfaz gráfica, de modo que un programa `.geo` se comporta igual en todas.
 
-2. **API web**
-   - El backend se expone con FastAPI usando `servidor.py`.
-   - Recibe instrucciones en lenguaje GEO y devuelve resultados o errores.
+| Fase | Módulo | Qué hace | Ejemplo de error |
+|---|---|---|---|
+| Léxica | `AnalisiLexicoCoordenadas.py` | Recorre el texto carácter a carácter (autómata finito) y genera los tokens | `Número mal formado: '4.7.1'` |
+| Sintáctica | `AnalisisSintactico.py`, `ReglasSintacticas.py`, `persistencia/reglas.json` | Verifica la estructura y construye el árbol `{comando, argumentos}` | `Se esperaba ',' entre latitud y longitud` |
+| Semántica | `AnalisisSemantico.py` | Verifica que los valores tengan sentido geográfico (rangos de latitud y longitud) | `Latitud 95 fuera de rango (debe estar entre -90 y 90)` |
+| Ejecución | `Ejecucion.py`, `ServicioGeografico.py` | Calcula el resultado de la instrucción | `No se encontró ningún lugar llamado 'xyz'` |
 
-3. **Interfaz gráfica**
-   - La parte visual está en `src/ui`.
-   - La versión web se sirve desde FastAPI.
-   - La versión escritorio abre una ventana nativa con pywebview y levanta el backend en segundo plano.
+**Recuperación de errores:** cada línea se compila de forma independiente. Un error en una línea no detiene las demás, así se reportan todos los errores del programa en una sola ejecución, cada uno con su línea y su fase.
+
+### Análisis sintáctico dirigido por configuración
+
+El parser no tiene las reglas escritas en su código. Lee `persistencia/reglas.json`, que asocia cada palabra clave con las funciones que validan su estructura:
+
+```json
+"distancia": {
+    "funcion_clave": "revisar_palabra_clave",
+    "funcion_argumentos": "regla_distancia"
+}
+```
+
+Con el primer token de la línea, el parser busca la regla en el JSON e invoca dinámicamente (`getattr`) las funciones de `ReglasSintacticas.py`, que consumen los tokens esperados y avanzan la posición del parser. El resultado es el árbol:
+
+```python
+{"comando": "distancia", "argumentos": ((4.711, -74.0721), (6.2442, -75.5812))}
+```
+
+El análisis semántico y la ejecución siguen el mismo patrón: un diccionario asocia cada comando con su regla o su acción.
+
+### Servicio geográfico (Nominatim / OpenStreetMap)
+
+`ServicioGeografico.py` consulta [Nominatim](https://nominatim.org/) para `UBICACION` (búsqueda por nombre) y `COORDENADA` (búsqueda inversa), respetando su [política de uso](https://operations.osmfoundation.org/policies/nominatim/):
+
+- máximo **1 consulta por segundo**, aunque lleguen varias peticiones a la vez;
+- `User-Agent` propio que identifica la aplicación;
+- **caché** de resultados, para no repetir consultas;
+- máximo **15 consultas por programa**;
+- si no hay internet o el servicio rechaza la consulta, la instrucción termina con un error de ejecución y el resto del programa sigue.
+
+### Autómatas
+
+Diagramas de las reglas léxicas y sintácticas de cada instrucción:
+
+| Instrucción | Autómata |
+|---|---|
+| Validación | ![Autómata de validación](imagenes/Diagrama%20automata%20%20validaci%C3%B3n.png) |
+| Coordenada | ![Autómata de coordenada](imagenes/Diagrama%20automata%20coordenada.png) |
+| Distancia | ![Autómata de distancia](imagenes/Diagrama%20automata%20distancia.png) |
+| Hemisferio | ![Autómata de hemisferio](imagenes/Diagrama%20automata%20hemisferio.png) |
+| Ubicación | ![Autómata de ubicación](imagenes/Diagrama%20automata%20%20ubicacion.png) |
+
+Flujo del analizador sintáctico:
+
+![Diagrama del Analizador Sintáctico](imagenes/diagrama%20analizador%20sintactico.png)
 
 ---
 
-## 4. Lenguaje de comandos
+## Interfaz gráfica
 
-### 4.1 Validación de coordenadas
+La interfaz (`src/ui/`) está hecha con HTML, CSS y JavaScript, y la sirve el mismo backend en `/ui/`. Incluye:
 
-```text
-validacion(latitud, longitud)
-```
+- **Editor** con resaltado de sintaxis, números de línea y las líneas con error marcadas en rojo.
+- **Panel de instrucciones** para insertar ejemplos de cada comando.
+- **Mapa mundial vectorial** (d3 + datos de Natural Earth, funciona sin internet) que dibuja los puntos, las rutas de `DISTANCIA` con su distancia en km y los lugares encontrados con `UBICACION`. Al hacer clic en una instrucción del resultado, el mapa se enfoca en ella.
+- **Pestañas** de Resultado, Tokens y Árbol sintáctico, y un indicador del estado de cada fase del compilador.
 
-Ejemplos:
+### API REST (`servidor.py`)
 
-```text
-validacion(4.7110, -74.0721)
-validacion(95.0, -74.0721)
-```
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/` | Desde un navegador, redirige a la interfaz (`/ui/`); desde otros clientes, devuelve lo mismo que `/info` |
+| `GET` | `/info` | Información del lenguaje y la versión |
+| `POST` | `/iniciar` | Compila un programa: `{"codigo": "..."}` |
+| `GET` | `/docs` | Documentación interactiva de la API (Swagger) |
 
-Reglas:
-- la latitud debe estar entre `-90` y `90`
-- la longitud debe estar entre `-180` y `180`
+Respuesta de `/iniciar` (resumida):
 
-### 4.2 Consulta de coordenada
-
-```text
-coordenada(latitud, longitud)
-```
-
-Ejemplo:
-
-```text
-coordenada(4.7110, -74.0721)
-```
-
-### 4.3 Distancia entre coordenadas
-
-```text
-distancia(latitud1, longitud1), (latitud2, longitud2)
-```
-
-Ejemplo:
-
-```text
-distancia(4.7110, -74.0721), (6.2442, -75.5812)
-```
-
-### 4.4 Hemisferio
-
-```text
-hemisferio(latitud, longitud)
-```
-
-Ejemplo:
-
-```text
-hemisferio(4.7110, -74.0721)
-```
-
-### 4.5 Búsqueda por ubicación
-
-```text
-ubicacion('Colombia')
-```
-
-Ejemplo:
-
-```text
-ubicacion('Bogotá')
-```
-
----
-
-## 5. Reglas sintácticas del lenguaje
-
-* Toda instrucción debe iniciar con una palabra reservada válida: `coordenada`, `validacion`, `distancia`, `hemisferio` o `ubicacion`.
-* Una coordenada se representa como `(latitud, longitud)`.
-* La separación de argumentos se realiza con `,`.
-* Los textos de ubicación se escriben entre comillas simples o dobles según el caso de uso.
-
-Ejemplos válidos:
-
-```text
-coordenada(4.7110, -74.0721)
-validacion(4.7110, -74.0721)
-distancia(4.7110, -74.0721), (6.2442, -75.5812)
-hemisferio(4.7110, -74.0721)
-ubicacion('Colombia')
-```
-
----
-
-## 6. Ejecución del compilador
-
-### 6.1 Requisitos
-
-- Python 3.x
-- Dependencias del proyecto:
-
-```bash
-pip install -r src/requirements.txt
-```
-
-### 6.2 Modo línea de comandos
-
-```bash
-python src/main.py
-```
-
-Ejemplo:
-
-```text
-GEO> coordenada(4.7110, -74.0721)
-```
-
-### 6.3 Ejecutar solo el analizador léxico
-
-```bash
-python src/AnalisiLexicoCoordenadas.py
+```json
+{
+  "exito": false,
+  "error": "Línea 2: Latitud 95 fuera de rango (debe estar entre -90 y 90)",
+  "instrucciones": [
+    {"linea": 1, "codigo": "distancia(4.7110, -74.0721), (6.2442, -75.5812)", "exito": true,
+     "resultado": {"comando": "distancia", "argumentos": [[4.711, -74.0721], [6.2442, -75.5812]]},
+     "salida": {"kilometros": 238.67}, "tokens": ["..."]},
+    {"linea": 2, "codigo": "coordenada(95, 10)", "exito": false,
+     "fase": "semantico", "error": "Latitud 95 fuera de rango (debe estar entre -90 y 90)", "tokens": ["..."]}
+  ],
+  "tokens": ["..."]
+}
 ```
 
 ---
 
-## 7. Ejecución web
+## Ejecución
 
-La versión web usa FastAPI como backend.
-
-1. Instala las dependencias:
+Requisitos: **Python 3.12 o superior**. Los comandos de esta sección se ejecutan desde la carpeta `src/`, salvo que se indique otra cosa.
 
 ```bash
-pip install -r src/requirements.txt
+pip install -r requirements.txt
 ```
 
-2. Ejecuta el servidor:
+| Modo | Comando | Dónde |
+|---|---|---|
+| Aplicación de escritorio | `python app.py` | Ventana nativa |
+| Web (navegador) | `python -m uvicorn servidor:app --reload` | `http://127.0.0.1:8000/` |
+| Consola interactiva | `python main.py` | `GEO>` (escribe `CERRAR` para salir) |
+| Ejecutar un archivo | `python main.py ../ProgramasCompilador/ejemplo.geo` | Consola |
+| Ayuda de la consola | `python main.py --help` | Consola |
+| Docker (desde la raíz) | `docker compose up --build` | `http://localhost:8000/` |
+
+### Generar el ejecutable (.exe)
+
+Con todas las ventanas de GeoQuery cerradas, desde `src/`:
 
 ```bash
-uvicorn servidor:app --host 0.0.0.0 --port 8000
-```
-
-3. Abre en el navegador:
-
-```text
-http://localhost:8000
-```
-
-La interfaz principal queda en:
-
-```text
-http://localhost:8000/ui/index.html
-```
-
----
-
-## 8. Ejecución de escritorio
-
-La aplicación de escritorio se ejecuta desde `src/app.py`.
-
-```bash
-python src/app.py
-```
-
-Esta versión:
-- levanta el backend FastAPI en segundo plano
-- abre una ventana nativa con pywebview
-- carga la interfaz web dentro de la ventana del sistema
-
----
-
-## 9. Ejecución con Docker
-
-El proyecto incluye un `Dockerfile` y un `docker-compose.yml` para ejecutar la aplicación en contenedor.
-
-### Opción 1: con Docker Compose
-
-```bash
-docker compose up --build
-```
-
-Luego abre:
-
-```text
-http://localhost:8000
-```
-
-### Opción 2: construcción manual
-
-```bash
-docker build -t compilador-coordenadas .
-docker run -d -p 8000:8000 --name compilador-coordenadas compilador-coordenadas
-```
-
-Para detenerlo:
-
-```bash
-docker stop compilador-coordenadas
-```
-
----
-
-## 10. Generación del ejecutable Windows
-
-Para empaquetar la versión escritorio con PyInstaller, ejecuta:
-
-```bash
-cd src
+pip install pyinstaller
 pyinstaller geo.spec
 ```
 
-El ejecutable generado quedará en:
+El ejecutable queda en **`src/dist/GeoQuery.exe`**. La aplicación levanta el servidor en un puerto libre y abre la interfaz en una ventana propia, así que se pueden abrir varias a la vez.
+
+### Despliegue en Render
+
+El repositorio incluye `Dockerfile` y `render.yaml`. En [render.com](https://render.com): **New → Blueprint**, seleccionar este repositorio y aplicar. Render crea el servicio con el plan *Free*, lo despliega desde la rama `main` y lo vuelve a desplegar en cada push a `main`. El servicio queda en `https://<nombre>.onrender.com/`.
+
+En el plan gratuito el servicio se suspende tras unos 15 minutos sin uso; la primera visita después de eso tarda entre 30 y 60 segundos.
+
+### Pruebas
+
+Desde la raíz del proyecto:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Las pruebas cubren las cuatro fases, el compilador y la API. Simulan el servicio de Nominatim, así que no necesitan internet.
+
+**Integración continua:** en cada pull request y en cada push a `main`, GitHub Actions (`.github/workflows/ci.yml`) ejecuta las pruebas, construye la imagen de Docker y comprueba que el contenedor sirve la interfaz.
+
+---
+
+## Tecnologías
+
+- **Python 3** — compilador (léxico, sintáctico, semántico y ejecución), construido desde cero sin generadores de parsers.
+- **FastAPI** y **Uvicorn** — API REST y servidor de la interfaz.
+- **HTML, CSS y JavaScript** — interfaz gráfica; **d3** y **topojson-client** para el mapa.
+- **pywebview** — ventana nativa de la aplicación de escritorio.
+- **PyInstaller** — empaquetado como ejecutable de Windows.
+- **Docker**, **Docker Compose** y **Render** — contenedor y despliegue en línea.
+- **pytest** y **GitHub Actions** — pruebas automáticas e integración continua.
+- **Nominatim (OpenStreetMap)** — búsqueda de lugares.
+
+En [`DOCUMENTACION.md`](DOCUMENTACION.md) hay un resumen del contexto, las motivaciones y la arquitectura del proyecto.
+
+---
+
+## Estructura del proyecto
 
 ```text
-src/dist/GeoQuery.exe
+Compilador-Coordenadas/
+├── src/
+│   ├── Token.py                     # Clase Token (tipo, valor)
+│   ├── AnalisiLexicoCoordenadas.py  # Fase léxica
+│   ├── AnalisisSintactico.py        # Motor del parser (carga reglas.json)
+│   ├── ReglasSintacticas.py         # Reglas sintácticas de cada instrucción
+│   ├── AnalisisSemantico.py         # Fase semántica (rangos)
+│   ├── Ejecucion.py                 # Fase de ejecución (intérprete)
+│   ├── ServicioGeografico.py        # Cliente de Nominatim (OpenStreetMap)
+│   ├── Compilador.py                # Orquesta las fases para cada línea
+│   ├── main.py                      # Consola (CLI)
+│   ├── servidor.py                  # API REST + interfaz web (FastAPI)
+│   ├── app.py                       # Aplicación de escritorio (pywebview)
+│   ├── geo.spec                     # Configuración de PyInstaller
+│   ├── requirements.txt             # Dependencias (escritorio y CLI)
+│   ├── requirements-web.txt         # Dependencias del servidor (Docker)
+│   ├── persistencia/reglas.json     # Reglas sintácticas en JSON
+│   └── ui/                          # Interfaz: index.html, style.css, main.js, mapa.js, vendor/
+├── tests/                           # Pruebas automáticas (pytest)
+├── ProgramasCompilador/ejemplo.geo  # Programa de ejemplo
+├── imagenes/                        # Diagramas de los autómatas
+├── docs/                            # Pseudocódigo del analizador léxico
+├── .github/workflows/ci.yml         # Integración continua (pruebas + Docker)
+├── Dockerfile, docker-compose.yml   # Contenedor del servidor
+├── render.yaml                      # Despliegue en Render
+└── DOCUMENTACION.md                 # Contexto y arquitectura del proyecto
 ```
 
 ---
 
-## 11. Tecnologías utilizadas
+## Créditos
 
-- Python 3
-- FastAPI
-- Uvicorn
-- HTML + CSS + JavaScript
-- pywebview
-- PyInstaller
-- Docker y Docker Compose
+- Datos de lugares: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), mediante el servicio [Nominatim](https://nominatim.org/).
+- Mapa base: [Natural Earth](https://www.naturalearthdata.com/) (dominio público), a través de [world-atlas](https://github.com/topojson/world-atlas).
+- Visualización del mapa: [d3](https://d3js.org/) y [topojson-client](https://github.com/topojson/topojson-client).
 
----
+## Autores
 
-## 12. Tokens reconocidos
-
-| Token | Descripción | Ejemplo |
-|-------|-------------|---------|
-| `IDENTIFICADOR` | Palabra clave reservada | `coordenada` |
-| `STRING` | Texto literal | `Colombia` |
-| `NUMERO` | Número entero o decimal | `45.12` |
-| `NEGATIVO` | Número negativo | `-19.43` |
-| `LPARENT` | Paréntesis de apertura | `(` |
-| `RPARENT` | Paréntesis de cierre | `)` |
-| `COMA` | Separador de argumentos | `,` |
-| `COMILLA` | Comillas simples | `'` |
-
-Palabras clave principales:
-
-```text
-coordenada | ubicacion | distancia | hemisferio | validar
-```
-
----
-
-## 13. Estado del proyecto
-
-- [x] Diseño de autómatas del lenguaje.
-- [x] Analizador léxico inicial.
-- [x] Parser con reglas dinámicas.
-- [x] Interfaz web.
-- [x] Interfaz de escritorio.
-- [x] Ejecución con Docker.
-- [x] Empaquetado con PyInstaller.
-- [ ] Validación semántica completa de rangos geográficos.
-- [ ] Cálculo total de distancias y localización por hemisferios.
-- [ ] Consulta completa de lugares y coordenadas.
-
----
-
-## 14. Autora
-
-Proyecto desarrollado como parte de la formación en Ingeniería de Sistemas – UPTC.
-
----
-
-## 15. Referencias visuales
-
-Los autómatas y diagramas del compilador se encuentran en la carpeta `imagenes/` y en la documentación del proyecto.
+Cristian Eslava y Kimberly Figueroa — Ingeniería de Sistemas, Universidad Pedagógica y Tecnológica de Colombia (UPTC).
