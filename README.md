@@ -156,7 +156,7 @@ La interfaz (`src/ui/`) está hecha con HTML, CSS y JavaScript, y la sirve el mi
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/` | Redirige a la interfaz (`/ui/`) |
+| `GET` | `/` | Desde un navegador, redirige a la interfaz (`/ui/`); desde otros clientes, devuelve lo mismo que `/info` |
 | `GET` | `/info` | Información del lenguaje y la versión |
 | `POST` | `/iniciar` | Compila un programa: `{"codigo": "..."}` |
 | `GET` | `/docs` | Documentación interactiva de la API (Swagger) |
@@ -210,7 +210,7 @@ El ejecutable queda en **`src/dist/GeoQuery.exe`**. La aplicación levanta el se
 
 ### Despliegue en Render
 
-El repositorio incluye `Dockerfile` y `render.yaml`. En [render.com](https://render.com): **New → Blueprint** (o **Web Service** con entorno Docker), seleccionar este repositorio y el plan *Free*. El servicio queda en `https://<nombre>.onrender.com/`.
+El repositorio incluye `Dockerfile` y `render.yaml`. En [render.com](https://render.com): **New → Blueprint**, seleccionar este repositorio y aplicar. Render crea el servicio con el plan *Free*, lo despliega desde la rama `main` y lo vuelve a desplegar en cada push a `main`. El servicio queda en `https://<nombre>.onrender.com/`.
 
 En el plan gratuito el servicio se suspende tras unos 15 minutos sin uso; la primera visita después de eso tarda entre 30 y 60 segundos.
 
@@ -224,6 +224,23 @@ python -m pytest
 ```
 
 Las pruebas cubren las cuatro fases, el compilador y la API. Simulan el servicio de Nominatim, así que no necesitan internet.
+
+**Integración continua:** en cada pull request y en cada push a `main`, GitHub Actions (`.github/workflows/ci.yml`) ejecuta las pruebas, construye la imagen de Docker y comprueba que el contenedor sirve la interfaz.
+
+---
+
+## Tecnologías
+
+- **Python 3** — compilador (léxico, sintáctico, semántico y ejecución), construido desde cero sin generadores de parsers.
+- **FastAPI** y **Uvicorn** — API REST y servidor de la interfaz.
+- **HTML, CSS y JavaScript** — interfaz gráfica; **d3** y **topojson-client** para el mapa.
+- **pywebview** — ventana nativa de la aplicación de escritorio.
+- **PyInstaller** — empaquetado como ejecutable de Windows.
+- **Docker**, **Docker Compose** y **Render** — contenedor y despliegue en línea.
+- **pytest** y **GitHub Actions** — pruebas automáticas e integración continua.
+- **Nominatim (OpenStreetMap)** — búsqueda de lugares.
+
+En [`DOCUMENTACION.md`](DOCUMENTACION.md) hay un resumen del contexto, las motivaciones y la arquitectura del proyecto.
 
 ---
 
@@ -244,16 +261,18 @@ Compilador-Coordenadas/
 │   ├── servidor.py                  # API REST + interfaz web (FastAPI)
 │   ├── app.py                       # Aplicación de escritorio (pywebview)
 │   ├── geo.spec                     # Configuración de PyInstaller
-│   ├── requirements.txt             # Dependencias (escritorio)
-│   ├── requirements-servidor.txt    # Dependencias del servidor (Docker)
+│   ├── requirements.txt             # Dependencias (escritorio y CLI)
+│   ├── requirements-web.txt         # Dependencias del servidor (Docker)
 │   ├── persistencia/reglas.json     # Reglas sintácticas en JSON
 │   └── ui/                          # Interfaz: index.html, style.css, main.js, mapa.js, vendor/
 ├── tests/                           # Pruebas automáticas (pytest)
 ├── ProgramasCompilador/ejemplo.geo  # Programa de ejemplo
 ├── imagenes/                        # Diagramas de los autómatas
 ├── docs/                            # Pseudocódigo del analizador léxico
+├── .github/workflows/ci.yml         # Integración continua (pruebas + Docker)
 ├── Dockerfile, docker-compose.yml   # Contenedor del servidor
-└── render.yaml                      # Despliegue en Render
+├── render.yaml                      # Despliegue en Render
+└── DOCUMENTACION.md                 # Contexto y arquitectura del proyecto
 ```
 
 ---

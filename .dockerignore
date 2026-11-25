@@ -1,17 +1,24 @@
 # Archivos que no deben copiarse a la imagen de Docker
 .git
+.gitignore
+.github
 .claude
 **/__pycache__
 *.py[cod]
+.env
+.venv
+venv
 
 # Builds del ejecutable de escritorio (PyInstaller)
-build/
-dist/
-src/build/
-src/dist/
-src/*.spec
+build
+dist
+src/build
+src/dist
+*.spec
 
-# Documentación y material que no necesita el servidor
-docs/
-imagenes/
-ProgramasCompilador/
+# Documentación, pruebas y material que no necesita el servidor
+*.onetoc2
+imagenes
+docs
+tests
+ProgramasCompilador

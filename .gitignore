@@ -24,5 +24,8 @@ dist/
 build/
 *.egg-info/
 
-# CachÃ© de pytest
+# Caché de pytest
 .pytest_cache/
+
+# Archivos de OneNote
+*.onetoc2

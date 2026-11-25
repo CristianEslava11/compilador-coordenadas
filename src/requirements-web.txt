@@ -1,0 +1,4 @@
+# Dependencias SOLO para el servidor web / Docker (sin pywebview, que es de escritorio).
+# requirements.txt sigue siendo el de la app de escritorio y el CLI.
+fastapi==0.162.5
+uvicorn==0.54.0

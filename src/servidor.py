@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -28,19 +29,24 @@ class CodigoRequest(BaseModel):
 	codigo: str
 
 
+INFO = {"lenguaje":"GEO",
+		"version":"1.0.0",
+		"estado":"en desarrollo",
+		"datos_geograficos":"© OpenStreetMap contributors (Nominatim)"}
 
-@app.get("/", include_in_schema=False)
-def inicio():
-	# Al abrir la URL del servicio en el navegador se muestra directamente la interfaz
-	return RedirectResponse(url="/ui/")
+
+@app.get("/")
+def inicio(request: Request):
+	# Un navegador que entra a la raíz se envía a la interfaz; un cliente de la API
+	# (curl, fetch, health checks) recibe el JSON de estado.
+	if "text/html" in request.headers.get("accept", ""):
+		return RedirectResponse("/ui/")
+	return INFO
 
 
 @app.get("/info")
 def info():
-	return {"lenguaje":"GEO",
-			"version":"1.0.0",
-			"estado":"en desarrollo",
-			"datos_geograficos":"© OpenStreetMap contributors (Nominatim)"}
+	return INFO
 
 
 @app.post("/iniciar")
@@ -60,14 +66,19 @@ def ejecutar_codigo(request: CodigoRequest):
         "tokens": [token for i in instrucciones for token in i["tokens"]],
     }
 
+# Orígenes permitidos: variable CORS_ORIGINS separada por comas (por defecto "*").
+# La UI desplegada se sirve desde el mismo origen, así que no depende de esto.
+ORIGENES = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # En producción acotarlo a "http://localhost"
+    allow_origins=ORIGENES,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Interfaz web (src/ui) servida por el mismo backend en /ui/.
 # La usan tanto la app de escritorio (app.py) como el despliegue en línea (Docker/Render).
+# En el .exe de PyInstaller, __file__ apunta a la carpeta donde se extraen los archivos.
 RUTA_UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 app.mount("/ui", StaticFiles(directory=RUTA_UI, html=True), name="ui")

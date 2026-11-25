@@ -1,9 +1,11 @@
-# Configuración de despliegue en Render (https://render.com/docs/blueprint-spec)
+# Blueprint de Render: despliega el Dockerfile y se redespliega en cada push a main.
+# https://render.com/docs/blueprint-spec
 services:
   - type: web
     name: geoquery
     runtime: docker
-    plan: free
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /info
+    plan: free
+    branch: main
     autoDeploy: true
+    healthCheckPath: /info

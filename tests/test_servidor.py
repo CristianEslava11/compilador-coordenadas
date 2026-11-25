@@ -14,10 +14,14 @@ def cliente():
     return TestClient(app)
 
 
-def test_raiz_redirige_a_la_interfaz(cliente):
-    respuesta = cliente.get("/", follow_redirects=False)
+def test_raiz_redirige_al_navegador_a_la_interfaz(cliente):
+    respuesta = cliente.get("/", headers={"accept": "text/html"}, follow_redirects=False)
     assert respuesta.status_code == 307
     assert respuesta.headers["location"] == "/ui/"
+
+
+def test_raiz_devuelve_json_a_clientes_de_la_api(cliente):
+    assert cliente.get("/").json() == cliente.get("/info").json()
 
 
 def test_info(cliente):
