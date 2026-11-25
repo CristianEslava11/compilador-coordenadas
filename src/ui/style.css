@@ -367,7 +367,7 @@ kbd {
 .mapa-punto-halo { fill: rgba(226, 181, 74, 0.18); stroke: none; }
 .mapa-punto      { fill: var(--acento); stroke: var(--mapa-mar); stroke-width: 1.5; }
 .mapa-marca, .mapa-ruta { transition: opacity 0.2s; }
-.mapa-marca.atenuado, .mapa-ruta.atenuado { opacity: 0.25; }
+.mapa-marca.atenuado, .mapa-ruta.atenuado, .mapa-ruta-etiqueta.atenuado { opacity: 0.25; }
 
 .mapa-etiqueta {
   font-family: var(--mono);
@@ -422,6 +422,29 @@ kbd {
   border: 1px solid var(--linea);
   border-radius: var(--radio);
   pointer-events: none;
+}
+
+.mapa-atribucion {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+  font-size: 9px;
+  color: var(--texto-3);
+  opacity: 0.55;
+  text-decoration: none;
+}
+.mapa-atribucion:hover { opacity: 1; text-decoration: underline; }
+
+.mapa-ruta-etiqueta {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--acento);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--mapa-mar);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .mapa-leyenda {
@@ -592,6 +615,9 @@ kbd {
 .instr-linea { font-family: var(--mono); font-size: 11px; color: var(--texto-3); text-align: right; }
 .instr-cmd   { font-family: var(--mono); font-weight: 600; color: var(--acento); }
 .instr-datos { font-family: var(--mono); color: var(--texto); overflow-wrap: anywhere; }
+.instr-res   { display: block; }
+.instr-res-invalida { color: var(--error); }
+.instr-args  { display: block; font-size: 11.5px; color: var(--texto-3); }
 
 .instr-error .instr-cmd   { color: var(--error); font-family: var(--fuente); font-size: 11.5px; }
 .instr-error .instr-datos { color: var(--texto-2); }

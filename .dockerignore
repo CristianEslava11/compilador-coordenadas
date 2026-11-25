@@ -1,11 +1,17 @@
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+# Archivos que no deben copiarse a la imagen de Docker
 .git
-.gitignore
-build
-dist
-*.spec
-.env
-.venv
+.claude
+**/__pycache__
+*.py[cod]
+
+# Builds del ejecutable de escritorio (PyInstaller)
+build/
+dist/
+src/build/
+src/dist/
+src/*.spec
+
+# Documentación y material que no necesita el servidor
+docs/
+imagenes/
+ProgramasCompilador/

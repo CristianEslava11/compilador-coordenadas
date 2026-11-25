@@ -5,7 +5,7 @@
 // API pública (window.Mapa):
 //   Mapa.iniciar(contenedor)          → dibuja el mapa
 //   Mapa.mostrar({ puntos, rutas })   → puntos: [{ lat, lon, etiqueta, grupo }]
-//                                        rutas:  [{ grupo, desde: {lat, lon}, hasta: {lat, lon} }]
+//                                        rutas:  [{ grupo, desde: {lat, lon}, hasta: {lat, lon}, etiqueta }]
 //   Mapa.enfocar(grupo)               → resalta y encuadra un grupo (null = todos)
 //   Mapa.limpiar()                    → quita puntos y rutas
 //   Mapa.encuadrar()                  → ajusta la vista al grupo activo, a todos los puntos o al mundo
@@ -97,6 +97,19 @@
       .attr("class", "mapa-ruta")
       .classed("atenuado", atenuado)
       .attr("d", (d) => d3.geoPath(p)(lineaDeRuta(d)));
+
+    // Etiqueta en el punto medio de la ruta (sobre el círculo máximo)
+    capaMarcas.selectAll(".mapa-ruta-etiqueta")
+      .data(rutas.filter((r) => r.etiqueta))
+      .join("text")
+      .attr("class", "mapa-ruta-etiqueta")
+      .classed("atenuado", atenuado)
+      .attr("transform", (d) => {
+        const medio = d3.geoInterpolate([d.desde.lon, d.desde.lat], [d.hasta.lon, d.hasta.lat])(0.5);
+        return `translate(${p(medio)})`;
+      })
+      .attr("dy", -8)
+      .text((d) => d.etiqueta);
 
     const grupos = capaMarcas.selectAll(".mapa-marca")
       .data(puntos)

@@ -1,0 +1,9 @@
+# Configuración de despliegue en Render (https://render.com/docs/blueprint-spec)
+services:
+  - type: web
+    name: geoquery
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /info
+    autoDeploy: true

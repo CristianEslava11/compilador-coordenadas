@@ -22,7 +22,7 @@ def revisar_palabra_clave(parser):
 
 def revisar_validacion_coordenada(parser):
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "LPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba '[]' al inicio de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba '(' al inicio de la coordenada")
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo not in ["NUMERO", "NEGATIVO"]:
@@ -40,7 +40,7 @@ def revisar_validacion_coordenada(parser):
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "RPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba ']' al final de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba ')' al final de la coordenada")
     parser.pos += 1
 
     return (latitud, longitud)
@@ -56,24 +56,24 @@ def regla_distancia(parser):
 
 def regla_ubicacion(parser):
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "LPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba '[' al inicio de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba '(' después de UBICACION")
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "COMILLA":
-        raise SyntaxError("Error Sintáctico: Se esperaba ''' al inicio de la coordenada")
+        raise SyntaxError("Error Sintáctico: El nombre del lugar debe ir entre comillas simples, por ejemplo 'Colombia'")
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo not in ["STRING"]:
-        raise SyntaxError("Error Sintáctico: Se esperaba un STRING para la ubicación")
+        raise SyntaxError("Error Sintáctico: Se esperaba el nombre del lugar entre las comillas")
     nombre_ubicacion = parser.tokens[parser.pos].valor
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "COMILLA":
-        raise SyntaxError("Error Sintáctico: Se esperaba ''' al final de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba la comilla (') de cierre del nombre del lugar")
     parser.pos += 1
 
     if parser.pos >= len(parser.tokens) or parser.tokens[parser.pos].tipo != "RPARENT":
-        raise SyntaxError("Error Sintáctico: Se esperaba ']' al final de la coordenada")
+        raise SyntaxError("Error Sintáctico: Se esperaba ')' al final de UBICACION")
     parser.pos += 1
 
     return nombre_ubicacion
