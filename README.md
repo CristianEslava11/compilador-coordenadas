@@ -6,6 +6,8 @@ GeoQuery es un compilador para **GEO**, un lenguaje de dominio específico (DSL)
 
 El compilador implementa las cuatro fases **léxica → sintáctica → semántica → ejecución** y se puede usar de tres formas: una **interfaz gráfica** con editor y mapa (aplicación de escritorio o web), una **consola** (CLI) y una **API REST**.
 
+**Versión en línea:** <https://compilador-coordenadas.onrender.com> (interfaz en `/ui/`, documentación de la API en `/docs`).
+
 ---
 
 ## El lenguaje GEO
@@ -210,9 +212,33 @@ El ejecutable queda en **`src/dist/GeoQuery.exe`**. La aplicación levanta el se
 
 ### Despliegue en Render
 
-El repositorio incluye `Dockerfile` y `render.yaml`. En [render.com](https://render.com): **New → Blueprint**, seleccionar este repositorio y aplicar. Render crea el servicio con el plan *Free*, lo despliega desde la rama `main` y lo vuelve a desplegar en cada push a `main`. El servicio queda en `https://<nombre>.onrender.com/`.
+La aplicación está desplegada en **<https://compilador-coordenadas.onrender.com>** como un *Web Service* de Render que construye el `Dockerfile` del repositorio. El contenedor arranca `uvicorn` en el puerto que Render asigna en la variable `PORT` y sirve la API y la interfaz desde el mismo origen, así que no hace falta configurar variables de entorno.
 
-En el plan gratuito el servicio se suspende tras unos 15 minutos sin uso; la primera visita después de eso tarda entre 30 y 60 segundos.
+**Crear el servicio** (solo la primera vez). Hay dos formas equivalentes:
+
+- **Con el Blueprint:** en [render.com](https://render.com), **New → Blueprint**, seleccionar este repositorio y aplicar. Render lee `render.yaml`.
+- **Manualmente** (así está creado el servicio actual): **New → Web Service**, conectar el repositorio y configurar:
+
+| Opción | Valor |
+|---|---|
+| Language / Runtime | `Docker` |
+| Branch | `main` |
+| Root Directory | *(vacío)* |
+| Instance Type | `Free` |
+| Health Check Path (en *Advanced*) | `/info` |
+| Auto-Deploy | `On Commit` |
+| Environment Variables | ninguna (`PORT` la define Render) |
+
+**Actualizar el despliegue.** Render solo despliega la rama `main`; los cambios que estén en otras ramas no se publican hasta que se fusionan:
+
+1. Trabajar en una rama (por ejemplo `feature/...`) y subirla a GitHub.
+2. Abrir un *pull request* hacia `main` y esperar a que la integración continua termine en verde.
+3. Hacer *merge*. Render detecta el nuevo commit en `main` y lo despliega solo (*Auto-Deploy*). El avance se ve en la pestaña **Events** del servicio y el commit publicado aparece junto a la etiqueta **Live**.
+4. Si el despliegue no se dispara, usar **Manual Deploy → Deploy latest commit**. Para volver a una versión anterior, usar **Rollback** en el despliegue correspondiente.
+
+> **Si después de un despliegue la interfaz se ve como antes**, es la caché del navegador: recargar con **Ctrl + Shift + R** (o abrir la página en una ventana de incógnito). El servidor envía `Cache-Control: no-cache` para los archivos de `/ui`, así que basta con hacerlo una vez.
+
+En el plan gratuito el servicio se suspende tras unos 15 minutos sin uso; la primera visita después de eso tarda entre 30 y 60 segundos, y mientras tanto la interfaz muestra "Servidor no disponible".
 
 ### Pruebas
 
